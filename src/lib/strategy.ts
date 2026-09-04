@@ -61,7 +61,18 @@ export function validateManifest(manifest: StrategyManifest): ValidationIssue[] 
 }
 
 export function canonicalManifest(manifest: StrategyManifest): string {
-  return JSON.stringify(manifest)
+  const sortKeys = (value: unknown): unknown => {
+    if (Array.isArray(value)) return value.map(sortKeys)
+    if (value !== null && typeof value === 'object') {
+      return Object.fromEntries(
+        Object.entries(value as Record<string, unknown>)
+          .sort(([left], [right]) => left.localeCompare(right))
+          .map(([key, child]) => [key, sortKeys(child)]),
+      )
+    }
+    return value
+  }
+  return JSON.stringify(sortKeys(manifest))
 }
 
 export function compileIntent(text: string): Partial<StrategyManifest> {

@@ -14,14 +14,7 @@ contract MockCircuitEngine is ICircuitEngine {
     uint256 public lastFillPrice;
     bytes32 public lastCallbackId;
 
-    function handleMarketFill(
-        bytes32,
-        uint16,
-        bytes32,
-        address,
-        uint256 fillPrice,
-        bytes32 callbackId
-    ) external {
+    function handleMarketFill(bytes32, uint16, bytes32, address, uint256 fillPrice, bytes32 callbackId) external {
         calls++;
         lastFillPrice = fillPrice;
         lastCallbackId = callbackId;

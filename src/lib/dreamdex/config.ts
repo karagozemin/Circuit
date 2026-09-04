@@ -17,7 +17,8 @@ export const DREAMDEX_CONTRACTS = {
   spotPoolRegistry: '0x07A29A0A086Bc8262a9320db93E603eE13D57962',
 } as const
 
-export const PLACE_ORDER_FOR_SELECTOR = '0x80054449' as const
+export const SPOT_PLACE_ORDER_FOR_SELECTOR = '0x80054449' as const
+export const BINARY_PLACE_ORDER_FOR_SELECTOR = '0x5d97c566' as const
 
 export function createDreamDexExchange(privateKey?: Hex) {
   return new SomniaMarkets({

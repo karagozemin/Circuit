@@ -27,12 +27,7 @@ contract CircuitReactivityHandler is SomniaEventHandler {
     mapping(bytes32 callbackId => bool) public processedCallbacks;
 
     event EngineUpdated(address indexed previousEngine, address indexed newEngine);
-    event MarketBound(
-        address indexed pool,
-        bytes32 indexed strategyId,
-        bytes32 indexed marketId,
-        uint16 round
-    );
+    event MarketBound(address indexed pool, bytes32 indexed strategyId, bytes32 indexed marketId, uint16 round);
     event MarketUnbound(address indexed pool);
     event ReactivityCallbackProcessed(
         bytes32 indexed callbackId,
@@ -61,19 +56,9 @@ contract CircuitReactivityHandler is SomniaEventHandler {
         emit EngineUpdated(previous, newEngine);
     }
 
-    function bindMarket(
-        address pool,
-        bytes32 strategyId,
-        bytes32 marketId,
-        uint16 round
-    ) external onlyOwner {
+    function bindMarket(address pool, bytes32 strategyId, bytes32 marketId, uint16 round) external onlyOwner {
         if (pool == address(0)) revert InvalidAddress();
-        bindings[pool] = Binding({
-            strategyId: strategyId,
-            marketId: marketId,
-            round: round,
-            active: true
-        });
+        bindings[pool] = Binding({strategyId: strategyId, marketId: marketId, round: round, active: true});
         emit MarketBound(pool, strategyId, marketId, round);
     }
 
@@ -82,11 +67,7 @@ contract CircuitReactivityHandler is SomniaEventHandler {
         emit MarketUnbound(pool);
     }
 
-    function _onEvent(
-        address emitter,
-        bytes32[] calldata eventTopics,
-        bytes calldata data
-    ) internal override {
+    function _onEvent(address emitter, bytes32[] calldata eventTopics, bytes calldata data) internal override {
         Binding memory binding = bindings[emitter];
         if (!binding.active) revert UnboundEmitter();
         if (eventTopics.length != 3) revert MalformedEvent();
@@ -97,23 +78,10 @@ contract CircuitReactivityHandler is SomniaEventHandler {
         if (processedCallbacks[callbackId]) return;
         processedCallbacks[callbackId] = true;
 
-        (, , , uint256 fillPrice) = abi.decode(data, (uint256, uint256, uint256, uint256));
-        engine.handleMarketFill(
-            binding.strategyId,
-            binding.round,
-            binding.marketId,
-            emitter,
-            fillPrice,
-            callbackId
-        );
+        (,,, uint256 fillPrice) = abi.decode(data, (uint256, uint256, uint256, uint256));
+        engine.handleMarketFill(binding.strategyId, binding.round, binding.marketId, emitter, fillPrice, callbackId);
         emit ReactivityCallbackProcessed(
-            callbackId,
-            binding.strategyId,
-            binding.marketId,
-            emitter,
-            binding.round,
-            fillPrice
+            callbackId, binding.strategyId, binding.marketId, emitter, binding.round, fillPrice
         );
     }
 }
-
