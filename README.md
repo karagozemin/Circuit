@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="./circuit_logo.png" alt="Circuit" width="320" />
+</p>
+
 # Circuit
 
 Programmable, bounded strategies for dreamDEX Event Contracts.

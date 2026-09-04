@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Activity, ArrowDownToLine, ArrowUpFromLine, Bot, Check, ChevronRight, CircleHelp, Clock3, Code2, Copy, ExternalLink, GitBranch, Layers3, Link2, LockKeyhole, LogOut, Pause, Play, Plus, RefreshCw, ShieldCheck, SlidersHorizontal, Sparkles, Wallet, X } from 'lucide-react'
+import { Activity, ArrowDownToLine, ArrowUpFromLine, Bot, Check, ChevronRight, CircleHelp, Clock3, Code2, Copy, ExternalLink, Layers3, Link2, LockKeyhole, LogOut, Pause, Play, Plus, RefreshCw, ShieldCheck, SlidersHorizontal, Sparkles, Wallet, X } from 'lucide-react'
 import type { Hex } from 'viem'
+import circuitLogo from '../circuit_logo.png'
 import { ActivationDialog } from './components/ActivationDialog'
 import { manifestHash } from './lib/contracts/engine'
 import type { TradingMarketSnapshot } from './lib/dreamdex/discovery'
@@ -187,7 +188,7 @@ function App() {
 
   return <div className="app-shell">
     <header className="topbar">
-      <div className="brand"><div className="brand-mark"><GitBranch size={17} strokeWidth={2.5} /></div><span>CIRCUIT</span><small>STRATEGY ENGINE</small></div>
+      <div className="brand"><div className="brand-mark"><img src={circuitLogo} alt="" /></div><span>CIRCUIT</span><small>STRATEGY ENGINE</small></div>
       <div className="network"><span className={`pulse ${marketHealth.state}`} /> Somnia Shannon <span className="network-divider" /> <span className="testnet">TESTNET</span></div>
       <div className="top-actions"><button className="icon-button" title="Help"><CircleHelp size={18} /></button><div className="wallet-control"><button className={`wallet ${walletConnected ? 'connected' : walletState.state === 'wrong-network' ? 'warning' : ''}`} disabled={walletState.state === 'connecting'} aria-expanded={walletMenu} onClick={() => walletState.state === 'wrong-network' ? void switchNetwork() : walletConnected ? setWalletMenu((open) => !open) : void connectWallet()}><Wallet size={16} />{walletState.state === 'connecting' ? 'Connecting...' : walletState.state === 'wrong-network' ? 'Switch network' : walletState.snapshot ? shortAddress(walletState.snapshot.address) : 'Connect wallet'}</button>{walletMenu && walletConnected && walletState.snapshot && <div className="wallet-menu" role="menu"><div className="wallet-summary"><span>CONNECTED ACCOUNT</span><strong>{shortAddress(walletState.snapshot.address)}</strong><small>{formatSttBalance(walletState.snapshot.balance)} · Shannon</small></div><button onClick={() => { void navigator.clipboard?.writeText(walletState.snapshot!.address); setNotice('Wallet address copied.') }}><Copy size={14} /> Copy address</button><a href={`https://shannon-explorer.somnia.network/address/${walletState.snapshot.address}`} target="_blank" rel="noreferrer"><ExternalLink size={14} /> View on explorer</a><button className="disconnect" onClick={disconnectWallet}><LogOut size={14} /> Disconnect</button></div>}</div></div>
     </header>
