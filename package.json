@@ -15,7 +15,7 @@
     "spike:subscribe": "tsx scripts/create-reactivity-subscription.ts",
     "contracts:build": "forge build",
     "contracts:test": "forge test",
-    "contracts:deploy": "forge build && tsx scripts/deploy-circuit.ts"
+    "contracts:deploy": "forge build && node --env-file=.env.local --import tsx scripts/deploy-circuit.ts"
   },
   "dependencies": {
     "@somnia-chain/markets-sdk": "^0.29.0",

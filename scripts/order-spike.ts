@@ -1,14 +1,15 @@
-import type { Hex, TransactionReceipt } from 'viem'
+import type { TransactionReceipt } from 'viem'
 import type { PlaceOrderResult } from '@somnia-chain/markets-sdk'
 import { createDreamDexExchange } from '../src/lib/dreamdex/config'
 import { discoverTradingMarket, isMarketEligible } from '../src/lib/dreamdex/discovery'
+import { requirePrivateKey } from './private-key'
 
 const execute = process.argv.includes('--execute')
 const requestedSide = process.argv.find((argument) => argument.startsWith('--side='))?.split('=')[1]?.toUpperCase()
 const side = requestedSide === 'UP' ? 'UP' : 'DOWN'
 const maxCollateral = Number(process.env.CIRCUIT_MAX_COLLATERAL ?? '1')
 const maxSlippageBps = Number(process.env.CIRCUIT_MAX_SLIPPAGE_BPS ?? '200')
-const privateKey = process.env.CIRCUIT_OPERATOR_PRIVATE_KEY as Hex | undefined
+const privateKey = execute ? requirePrivateKey(process.env.CIRCUIT_OPERATOR_PRIVATE_KEY) : undefined
 
 if (!Number.isFinite(maxCollateral) || maxCollateral <= 0 || maxCollateral > 10) {
   throw new Error('CIRCUIT_MAX_COLLATERAL must be greater than 0 and no more than the P0 cap of 10.')
@@ -16,10 +17,6 @@ if (!Number.isFinite(maxCollateral) || maxCollateral <= 0 || maxCollateral > 10)
 if (!Number.isInteger(maxSlippageBps) || maxSlippageBps < 0 || maxSlippageBps > 1_000) {
   throw new Error('CIRCUIT_MAX_SLIPPAGE_BPS must be an integer between 0 and 1000.')
 }
-if (execute && !privateKey) {
-  throw new Error('Set CIRCUIT_OPERATOR_PRIVATE_KEY in the shell before using --execute. Never use a VITE_* variable for a private key.')
-}
-
 const exchange = createDreamDexExchange(privateKey)
 const market = await discoverTradingMarket({ exchange, minSecondsToExpiry: 120 })
 const symbol = side === 'UP' ? market.yesSymbol : market.noSymbol

@@ -4,10 +4,10 @@ import { privateKeyToAccount } from 'viem/accounts'
 import { somniaShannon } from '@somnia-chain/markets-sdk/chains'
 import { SHANNON_FALLBACK_RPC_URL, SHANNON_RPC_URL } from '../src/lib/dreamdex/config'
 import { discoverTradingMarket } from '../src/lib/dreamdex/discovery'
+import { requirePrivateKey } from './private-key'
 
-const privateKey = process.env.CIRCUIT_OPERATOR_PRIVATE_KEY as Hex | undefined
+const privateKey = requirePrivateKey(process.env.CIRCUIT_OPERATOR_PRIVATE_KEY)
 const handler = process.env.CIRCUIT_HANDLER_ADDRESS as Address | undefined
-if (!privateKey) throw new Error('CIRCUIT_OPERATOR_PRIVATE_KEY is required. Keep it server-side and out of git.')
 if (!handler || !isAddress(handler)) throw new Error('CIRCUIT_HANDLER_ADDRESS must be a deployed handler address.')
 
 const account = privateKeyToAccount(privateKey)

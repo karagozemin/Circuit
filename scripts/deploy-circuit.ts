@@ -4,11 +4,9 @@ import { privateKeyToAccount } from 'viem/accounts'
 import engineArtifact from '../contracts/out/CircuitEngine.sol/CircuitEngine.json'
 import handlerArtifact from '../contracts/out/CircuitReactivityHandler.sol/CircuitReactivityHandler.json'
 import { SHANNON_DIAGNOSTIC_RPC_URL, SHANNON_FALLBACK_RPC_URL, SHANNON_RPC_URL } from '../src/lib/dreamdex/config'
+import { requirePrivateKey } from './private-key'
 
-const privateKey = process.env.CIRCUIT_OPERATOR_PRIVATE_KEY as Hex | undefined
-if (!privateKey || !/^0x[0-9a-fA-F]{64}$/.test(privateKey)) {
-  throw new Error('CIRCUIT_OPERATOR_PRIVATE_KEY must be a 32-byte deployer key. Never expose it as VITE_* or commit it.')
-}
+const privateKey = requirePrivateKey(process.env.CIRCUIT_OPERATOR_PRIVATE_KEY)
 
 const account = privateKeyToAccount(privateKey)
 const transport = fallback([

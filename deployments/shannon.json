@@ -1,0 +1,23 @@
+{
+  "network": "Somnia Shannon Testnet",
+  "chainId": 50312,
+  "deployedAt": "2026-09-05",
+  "admin": "0x8aeA55E869eab02A0a68D3172e85C5aeCEe8534D",
+  "engine": "0x95ec2c8a57159f0728ca32d9bef60a185a67010c",
+  "handler": "0xf348469ab75482978e39ca0b1f0f3f52e2e417cf",
+  "transactions": {
+    "engine": {
+      "hash": "0x030d82b3b811e0a449547666fb41ed3d203b9c3ed7973c39f0780b9821db7661",
+      "blockNumber": 479823267
+    },
+    "handler": {
+      "hash": "0x2ead4f041e70c59280a5efdc2c4e6bc95e43ab858d24a433294358cdcd4dcfe1",
+      "blockNumber": 479823287
+    },
+    "wiring": {
+      "hash": "0x53d6abc999c534d554f8e4ba876d08175a55d416b65d3ce301eb2bf82e3210ab",
+      "blockNumber": 479823302
+    }
+  },
+  "dreamDexBinaryPoolAuthorization": "pending"
+}

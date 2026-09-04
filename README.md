@@ -40,10 +40,10 @@ Open `http://localhost:5173`.
 ## Deploy and Configure
 
 ```bash
-CIRCUIT_OPERATOR_PRIVATE_KEY=0x... npm run contracts:deploy
+npm run contracts:deploy
 ```
 
-The command prints the deployed addresses and transaction hashes. Put only the public addresses in local frontend configuration:
+The command reads `CIRCUIT_OPERATOR_PRIVATE_KEY` from the Git-ignored `.env.local`, then prints the deployed addresses and transaction hashes. Put only the public addresses in the same local frontend configuration:
 
 ```bash
 VITE_CIRCUIT_ENGINE_ADDRESS=0x...
@@ -51,6 +51,8 @@ VITE_CIRCUIT_HANDLER_ADDRESS=0x...
 ```
 
 Then restart Vite and run the read-only authorization proof printed by the deploy command. The Engine must pass dreamDEX's BinaryPool system-contract gate before the activation review enables writes. Never put the deployer key in a `VITE_*` variable.
+
+The current Shannon deployment and receipt references are recorded in [`deployments/shannon.json`](deployments/shannon.json). Its dreamDEX BinaryPool authorization remains `pending` until the system-contract allowlist probe passes.
 
 ## Verification
 

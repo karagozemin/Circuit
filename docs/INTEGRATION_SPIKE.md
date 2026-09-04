@@ -65,7 +65,7 @@ The engine keeps the non-custodial `placeBinaryOrderFor` adapter because it is t
 Deploy and wire the Engine/handler pair with:
 
 ```bash
-CIRCUIT_OPERATOR_PRIVATE_KEY=0x... npm run contracts:deploy
+npm run contracts:deploy
 ```
 
 The deploy command verifies the chain ID, deploy receipts, and Engine-to-handler pointer before printing the two public `VITE_CIRCUIT_*` values. Market binding is performed atomically by `CircuitEngine.bindMarket`; a strategy owner does not need handler-admin authority.
