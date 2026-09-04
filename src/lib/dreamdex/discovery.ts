@@ -1,7 +1,7 @@
 import type { BinaryMarket, MarketOnchain, SomniaMarkets } from '@somnia-chain/markets-sdk'
 import { createPublicClient, fallback, http } from 'viem'
 import { somniaShannon } from '@somnia-chain/markets-sdk/chains'
-import { createDreamDexExchange, SHANNON_FALLBACK_RPC_URL, SHANNON_RPC_URL } from './config'
+import { createDreamDexExchange, SHANNON_DIAGNOSTIC_RPC_URL, SHANNON_FALLBACK_RPC_URL, SHANNON_RPC_URL } from './config'
 
 export interface TradingMarketSnapshot {
   marketId: `0x${string}`
@@ -14,6 +14,9 @@ export interface TradingMarketSnapshot {
   secondsToExpiry: number
   collateral: `0x${string}`
   collateralDecimals: number
+  outcomeToken: `0x${string}`
+  yesId: bigint
+  noId: bigint
   yesSymbol: string
   noSymbol: string
   bestYesBid: number | null
@@ -47,7 +50,7 @@ export async function discoverTradingMarket({
 }: DiscoverMarketOptions = {}): Promise<TradingMarketSnapshot> {
   const publicClient = createPublicClient({
     chain: somniaShannon,
-    transport: fallback([http(SHANNON_RPC_URL), http(SHANNON_FALLBACK_RPC_URL)]),
+    transport: fallback([http(SHANNON_RPC_URL), http(SHANNON_FALLBACK_RPC_URL), http(SHANNON_DIAGNOSTIC_RPC_URL)]),
   })
   const [block, indexedCandidates, unifiedMarkets] = await Promise.all([
     publicClient.getBlock(),
@@ -80,6 +83,9 @@ export async function discoverTradingMarket({
       secondsToExpiry: Number(onchain.expiry) - nowSec,
       collateral: onchain.collateral,
       collateralDecimals: onchain.decimals,
+      outcomeToken: onchain.outcomeToken,
+      yesId: onchain.yesId,
+      noId: onchain.noId,
       yesSymbol,
       noSymbol,
       bestYesBid: book.bids[0]?.[0] ?? null,

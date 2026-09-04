@@ -7,6 +7,7 @@ const viteEnv = (import.meta as ImportMeta & { env?: Record<string, string | und
 export const SHANNON_CHAIN_ID = 50_312
 export const SHANNON_RPC_URL = viteEnv.VITE_SOMNIA_RPC_URL ?? 'https://api.infra.testnet.somnia.network'
 export const SHANNON_FALLBACK_RPC_URL = viteEnv.VITE_SOMNIA_FALLBACK_RPC_URL ?? 'https://dream-rpc.somnia.network'
+export const SHANNON_DIAGNOSTIC_RPC_URL = viteEnv.VITE_SOMNIA_DIAGNOSTIC_RPC_URL ?? 'https://rpc.ankr.com/somnia_testnet'
 export const SHANNON_WS_RPC_URL = viteEnv.VITE_SOMNIA_WS_RPC_URL ?? 'wss://api.infra.testnet.somnia.network/ws'
 export const DREAMDEX_INDEXER_URL = viteEnv.VITE_DREAMDEX_INDEXER_URL ?? 'https://dev.smk.somnia.host/v1/graphql'
 export const SHANNON_EXPLORER_URL = 'https://shannon-explorer.somnia.network'

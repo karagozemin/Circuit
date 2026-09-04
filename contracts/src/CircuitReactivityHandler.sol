@@ -6,10 +6,12 @@ import {ICircuitEngine} from "./interfaces/ICircuitEngine.sol";
 
 contract CircuitReactivityHandler is SomniaEventHandler {
     error OnlyOwner();
+    error OnlyOwnerOrEngine();
     error InvalidAddress();
     error UnboundEmitter();
     error UnexpectedTopic();
     error MalformedEvent();
+    error EmitterAlreadyBound();
 
     bytes32 public constant ORDER_FILLED_TOPIC =
         keccak256("OrderFilled(uint128,uint128,uint256,uint256,uint256,uint256)");
@@ -43,6 +45,11 @@ contract CircuitReactivityHandler is SomniaEventHandler {
         _;
     }
 
+    modifier onlyOwnerOrEngine() {
+        if (msg.sender != owner && msg.sender != address(engine)) revert OnlyOwnerOrEngine();
+        _;
+    }
+
     constructor(address initialOwner, address initialEngine) {
         if (initialOwner == address(0) || initialEngine == address(0)) revert InvalidAddress();
         owner = initialOwner;
@@ -56,8 +63,10 @@ contract CircuitReactivityHandler is SomniaEventHandler {
         emit EngineUpdated(previous, newEngine);
     }
 
-    function bindMarket(address pool, bytes32 strategyId, bytes32 marketId, uint16 round) external onlyOwner {
+    function bindMarket(address pool, bytes32 strategyId, bytes32 marketId, uint16 round) external onlyOwnerOrEngine {
         if (pool == address(0)) revert InvalidAddress();
+        Binding memory current = bindings[pool];
+        if (current.active && current.strategyId != strategyId) revert EmitterAlreadyBound();
         bindings[pool] = Binding({strategyId: strategyId, marketId: marketId, round: round, active: true});
         emit MarketBound(pool, strategyId, marketId, round);
     }

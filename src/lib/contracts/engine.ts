@@ -42,6 +42,35 @@ export function manifestToEngineConfig(manifest: StrategyManifest): EngineStrate
 
 export const circuitEngineAbi = [
   {
+    type: 'event',
+    name: 'StrategyCreated',
+    inputs: [
+      { name: 'strategyId', type: 'bytes32', indexed: true },
+      { name: 'owner', type: 'address', indexed: true },
+      { name: 'manifestHash', type: 'bytes32', indexed: true },
+    ],
+  },
+  {
+    type: 'event',
+    name: 'MarketBound',
+    inputs: [
+      { name: 'strategyId', type: 'bytes32', indexed: true },
+      { name: 'marketId', type: 'bytes32', indexed: true },
+      { name: 'pool', type: 'address', indexed: true },
+      { name: 'round', type: 'uint16', indexed: false },
+    ],
+  },
+  {
+    type: 'event',
+    name: 'StrategyActivated',
+    inputs: [
+      { name: 'strategyId', type: 'bytes32', indexed: true },
+      { name: 'marketId', type: 'bytes32', indexed: true },
+      { name: 'pool', type: 'address', indexed: true },
+    ],
+  },
+  { type: 'function', name: 'reactivityHandler', stateMutability: 'view', inputs: [], outputs: [{ name: '', type: 'address' }] },
+  {
     type: 'function',
     name: 'createStrategy',
     stateMutability: 'nonpayable',
@@ -68,9 +97,23 @@ export const circuitEngineAbi = [
     ],
     outputs: [{ name: 'strategyId', type: 'bytes32' }],
   },
+  {
+    type: 'function',
+    name: 'bindMarket',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'strategyId', type: 'bytes32' },
+      { name: 'marketId', type: 'bytes32' },
+      { name: 'market', type: 'address' },
+      { name: 'pool', type: 'address' },
+      { name: 'collateral', type: 'address' },
+      { name: 'outcomeToken', type: 'address' },
+      { name: 'outcomeTokenId', type: 'uint256' },
+    ],
+    outputs: [],
+  },
   { type: 'function', name: 'activateStrategy', stateMutability: 'nonpayable', inputs: [{ name: 'strategyId', type: 'bytes32' }], outputs: [] },
   { type: 'function', name: 'pauseStrategy', stateMutability: 'nonpayable', inputs: [{ name: 'strategyId', type: 'bytes32' }], outputs: [] },
   { type: 'function', name: 'resumeStrategy', stateMutability: 'nonpayable', inputs: [{ name: 'strategyId', type: 'bytes32' }], outputs: [] },
   { type: 'function', name: 'cancelStrategy', stateMutability: 'nonpayable', inputs: [{ name: 'strategyId', type: 'bytes32' }], outputs: [] },
 ] as const
-

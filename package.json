@@ -14,7 +14,8 @@
     "spike:operator": "tsx scripts/check-operator.ts",
     "spike:subscribe": "tsx scripts/create-reactivity-subscription.ts",
     "contracts:build": "forge build",
-    "contracts:test": "forge test"
+    "contracts:test": "forge test",
+    "contracts:deploy": "forge build && tsx scripts/deploy-circuit.ts"
   },
   "dependencies": {
     "@somnia-chain/markets-sdk": "^0.29.0",

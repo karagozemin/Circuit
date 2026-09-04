@@ -18,8 +18,11 @@ The repository contains:
 - a `CircuitEngine` with manifest anchoring, market binding, risk caps, state transitions, replay protection, IOC execution and actual-balance accounting;
 - deterministic frontend manifest hashing and Solidity config encoding.
 - real injected-wallet connection with account restoration, STT balance, Shannon network switching, account/chain event handling and local disconnect.
+- a receipt-driven activation review that creates the strategy, atomically binds the live market and handler, creates the on-chain Reactivity subscription, then arms the strategy;
+- real owner-signed pause and resume transactions with explorer-linked receipts;
+- a deterministic Engine/handler Shannon deployment script with post-deploy wiring verification.
 
-The UI does not present local simulation as a completed on-chain strategy. `Activate` requires a real connected Shannon wallet and verified live market, then fails closed while the engine/subscription deployment is absent. The current BinaryPool deployment limits `placeBinaryOrderFor` to dreamDEX-approved system contracts; the user-managed operator registry documented for SpotPool does not authorize Circuit for Event Contracts. Real activation therefore requires dreamDEX to allowlist the engine (or publish a supported binary delegation path), followed by deployment and a funded testnet proof.
+The UI does not present local simulation as a completed on-chain strategy. `Activate` requires a real connected Shannon wallet, verified live market, deployed Engine/handler bytecode, correct wiring, the 32 STT Reactivity minimum, and a passing dreamDEX BinaryPool operator probe. Missing deployment configuration or system allowlisting is shown as a blocking preflight result and no wallet write is requested.
 
 ## Run
 
@@ -29,6 +32,21 @@ npm run dev
 ```
 
 Open `http://localhost:5173`.
+
+## Deploy and Configure
+
+```bash
+CIRCUIT_OPERATOR_PRIVATE_KEY=0x... npm run contracts:deploy
+```
+
+The command prints the deployed addresses and transaction hashes. Put only the public addresses in local frontend configuration:
+
+```bash
+VITE_CIRCUIT_ENGINE_ADDRESS=0x...
+VITE_CIRCUIT_HANDLER_ADDRESS=0x...
+```
+
+Then restart Vite and run the read-only authorization proof printed by the deploy command. The Engine must pass dreamDEX's BinaryPool system-contract gate before the activation review enables writes. Never put the deployer key in a `VITE_*` variable.
 
 ## Verification
 

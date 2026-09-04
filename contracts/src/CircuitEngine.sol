@@ -2,6 +2,7 @@
 pragma solidity 0.8.30;
 
 import {ICircuitEngine} from "./interfaces/ICircuitEngine.sol";
+import {ICircuitReactivityBinder} from "./interfaces/ICircuitReactivityBinder.sol";
 import {IBinaryMarket, IBinaryPool, IERC20Balance, IERC6909Balance} from "./interfaces/IDreamDexBinary.sol";
 
 contract CircuitEngine is ICircuitEngine {
@@ -257,6 +258,7 @@ contract CircuitEngine is ICircuitEngine {
         runtime.outcomeTokenId = outcomeTokenId;
         runtime.triggerFillPrice = 0;
         runtime.currentPositionSize = 0;
+        ICircuitReactivityBinder(reactivityHandler).bindMarket(pool, strategyId, marketId, runtime.round);
         emit MarketBound(strategyId, marketId, pool, runtime.round);
     }
 

@@ -73,6 +73,11 @@ contract CircuitReactivityHandlerTest {
         handler.onEvent(address(0xCAFE), topics, data);
     }
 
+    function testRejectsReplacingAnotherStrategyBinding() public {
+        vm.expectRevert(CircuitReactivityHandler.EmitterAlreadyBound.selector);
+        handler.bindMarket(POOL, keccak256("strategy-2"), MARKET_ID, 1);
+    }
+
     function _topics() private view returns (bytes32[] memory topics) {
         topics = new bytes32[](3);
         topics[0] = handler.ORDER_FILLED_TOPIC();

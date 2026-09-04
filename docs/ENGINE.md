@@ -26,6 +26,8 @@ Policy limit -> STOPPED
 - callback and action replay protection;
 - risk accounting from actual owner balance deltas, not requested quantity;
 - owner-only lifecycle controls and handler-only event transitions;
+- atomic Engine-to-handler market binding, so strategy owners never need handler-admin authority;
+- rejection of attempts to replace another strategy's active pool binding;
 - reentrancy protection around the external pool call.
 
 ## External Authorization Requirement

@@ -114,6 +114,7 @@ contract CircuitEngineTest {
     bytes32 private constant MARKET_ID = bytes32(uint256(123));
 
     CircuitEngine private engine;
+    CircuitReactivityHandler private handler;
     MockCollateral private collateral;
     MockOutcome private outcome;
     MockBinaryPool private pool;
@@ -128,6 +129,8 @@ contract CircuitEngineTest {
         market =
             new MockBinaryMarket(address(pool), address(collateral), address(outcome), uint64(block.timestamp + 900));
         engine = new CircuitEngine(address(this), address(this));
+        handler = new CircuitReactivityHandler(address(this), address(engine));
+        engine.setReactivityHandler(address(handler));
         pool.setApprovedContract(address(engine), true);
         collateral.setBalance(address(this), 100_000_000);
         strategyId = engine.createStrategy(MANIFEST_HASH, _config());
@@ -169,11 +172,13 @@ contract CircuitEngineTest {
         bytes32 callbackId = bytes32(uint256(3));
         _trigger(callbackId);
         vm.expectRevert(CircuitEngine.DuplicateCallback.selector);
+        vm.prank(address(handler));
         engine.handleMarketFill(strategyId, 1, MARKET_ID, address(pool), 750_000, callbackId);
     }
 
     function testNonMatchingFillKeepsStrategyArmedAndConsumesCallback() public {
         bytes32 callbackId = bytes32(uint256(30));
+        vm.prank(address(handler));
         engine.handleMarketFill(strategyId, 1, MARKET_ID, address(pool), 650_000, callbackId);
 
         (, CircuitEngine.StrategyRuntime memory runtime) = engine.getStrategy(strategyId);
@@ -181,6 +186,7 @@ contract CircuitEngineTest {
         require(engine.processedCallbacks(callbackId), "callback was not consumed");
 
         vm.expectRevert(CircuitEngine.DuplicateCallback.selector);
+        vm.prank(address(handler));
         engine.handleMarketFill(strategyId, 1, MARKET_ID, address(pool), 750_000, callbackId);
     }
 
@@ -228,6 +234,7 @@ contract CircuitEngineTest {
     }
 
     function testStopsAtMaximumRoundCount() public {
+        handler.unbindMarket(address(pool));
         CircuitEngine.StrategyConfig memory oneRound = _config();
         oneRound.maxRounds = 1;
         bytes32 oneRoundId = engine.createStrategy(keccak256("one-round"), oneRound);
@@ -235,8 +242,10 @@ contract CircuitEngineTest {
             oneRoundId, bytes32(uint256(500)), address(market), address(pool), address(collateral), address(outcome), 2
         );
         engine.activateStrategy(oneRoundId);
+        vm.prank(address(handler));
         engine.handleMarketFill(oneRoundId, 1, bytes32(uint256(500)), address(pool), 750_000, bytes32(uint256(501)));
         engine.executeReadyAction(oneRoundId, 745_000, 10_000_000);
+        vm.prank(address(handler));
         engine.handleResolution(
             oneRoundId, bytes32(uint256(500)), CircuitEngine.RoundResult.WIN, 10_000_000, bytes32(uint256(502))
         );
@@ -262,7 +271,6 @@ contract CircuitEngineTest {
             integratedId, MARKET_ID, address(market), address(pool), address(collateral), address(outcome), 2
         );
         integratedEngine.activateStrategy(integratedId);
-        integratedHandler.bindMarket(address(pool), integratedId, MARKET_ID, 1);
 
         bytes32[] memory topics = new bytes32[](3);
         topics[0] = integratedHandler.ORDER_FILLED_TOPIC();
@@ -293,7 +301,9 @@ contract CircuitEngineTest {
     function _completeLoss(uint256 seed) private {
         _trigger(bytes32(seed));
         engine.executeReadyAction(strategyId, 745_000, 10_000_000);
-        engine.handleResolution(strategyId, engineRoundMarket(), CircuitEngine.RoundResult.LOSS, 0, bytes32(seed + 1));
+        bytes32 marketId = engineRoundMarket();
+        vm.prank(address(handler));
+        engine.handleResolution(strategyId, marketId, CircuitEngine.RoundResult.LOSS, 0, bytes32(seed + 1));
     }
 
     function engineRoundMarket() private view returns (bytes32) {
@@ -303,6 +313,7 @@ contract CircuitEngineTest {
 
     function _trigger(bytes32 callbackId) private {
         (, CircuitEngine.StrategyRuntime memory runtime) = engine.getStrategy(strategyId);
+        vm.prank(address(handler));
         engine.handleMarketFill(strategyId, runtime.round, runtime.currentMarketId, address(pool), 750_000, callbackId);
     }
 

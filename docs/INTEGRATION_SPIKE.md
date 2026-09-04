@@ -62,13 +62,21 @@ The engine keeps the non-custodial `placeBinaryOrderFor` adapter because it is t
 
 `CircuitReactivityHandler` inherits the official `SomniaEventHandler` implementation. It rejects non-precompile callers, checks the bound pool and `OrderFilled` topic, de-duplicates callbacks, decodes `fillPrice`, and forwards only the validated payload to `ICircuitEngine`.
 
-After deploying and binding the current pool, create the real on-chain subscription with:
+Deploy and wire the Engine/handler pair with:
+
+```bash
+CIRCUIT_OPERATOR_PRIVATE_KEY=0x... npm run contracts:deploy
+```
+
+The deploy command verifies the chain ID, deploy receipts, and Engine-to-handler pointer before printing the two public `VITE_CIRCUIT_*` values. Market binding is performed atomically by `CircuitEngine.bindMarket`; a strategy owner does not need handler-admin authority.
+
+For a standalone subscription proof, create the real on-chain subscription with:
 
 ```bash
 npm run spike:subscribe
 ```
 
-The subscription script requires a funded owner with at least 32 STT and a deployed `CIRCUIT_HANDLER_ADDRESS`. It filters by the current pool and exact `OrderFilled` topic.
+The subscription script requires a funded owner with at least 32 STT and a deployed `CIRCUIT_HANDLER_ADDRESS`. It filters by the current pool and exact `OrderFilled` topic. The browser activation review performs the same subscription through the connected wallet and records the receipt and subscription ID.
 
 ## Remaining External Proofs
 
