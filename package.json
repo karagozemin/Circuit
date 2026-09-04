@@ -1,0 +1,38 @@
+{
+  "name": "circuit",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "typecheck:tools": "tsc -p tsconfig.tools.json",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "spike:discover": "tsx scripts/discover-market.ts",
+    "spike:order": "tsx scripts/order-spike.ts",
+    "spike:operator": "tsx scripts/check-operator.ts",
+    "spike:subscribe": "tsx scripts/create-reactivity-subscription.ts",
+    "contracts:build": "forge build",
+    "contracts:test": "forge test"
+  },
+  "dependencies": {
+    "@somnia-chain/markets-sdk": "^0.29.0",
+    "@somnia-chain/reactivity": "^0.2.1",
+    "@somnia-chain/reactivity-contracts": "^0.2.1",
+    "lucide-react": "^0.468.0",
+    "react": "latest",
+    "react-dom": "latest",
+    "viem": "^2.56.3"
+  },
+  "devDependencies": {
+    "@types/node": "^26.4.1",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.7",
+    "@vitejs/plugin-react": "^6.1.1",
+    "tsx": "^4.23.13",
+    "typescript": "latest",
+    "vite": "latest",
+    "vitest": "latest"
+  }
+}
