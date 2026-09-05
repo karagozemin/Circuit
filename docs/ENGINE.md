@@ -30,8 +30,8 @@ Policy limit -> STOPPED
 - rejection of attempts to replace another strategy's active pool binding;
 - reentrancy protection around the external pool call.
 
-## External Authorization Requirement
+## Execution Paths
 
-The current Shannon BinaryPool exposes `placeBinaryOrderFor`, but live simulation from an arbitrary contract reverts with `OnlyApprovedContracts()`. Unlike SpotPool, BinaryPool does not use the user-managed OperatorPermissionsRegistry. Circuit must be approved by dreamDEX as a system contract, or dreamDEX must provide another supported binary delegation rail, before this adapter can execute non-custodially.
+The engine retains a bounded `placeBinaryOrderFor` adapter for a future dreamDEX-approved system-contract deployment. On Shannon, an arbitrary contract currently reverts that delegated call with `OnlyApprovedContracts()`; this is why `deployments/shannon.json` records delegated authorization as pending.
 
-The repository deliberately does not substitute custody, pooled funds or an unrestricted hot key for that missing authorization.
+The current browser path does not use delegated execution. Once a strategy is armed, the Live screen exposes a bounded manual execution probe that calls `@somnia-chain/markets-sdk` with the connected `WalletClient`; the SDK sends the user's own `placeBinaryOrder` transaction and handles the pool approval flow. Each order remains explicitly wallet-signed. This preserves non-custody, but the probe does not mutate Engine cumulative accounting or autonomously advance its state; that still requires the delegated path.

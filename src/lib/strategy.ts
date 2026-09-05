@@ -50,6 +50,7 @@ export function validateManifest(manifest: StrategyManifest): ValidationIssue[] 
   if (!supportedIntervals.has(manifest.series.intervalSec)) issues.push({ path: 'series.intervalSec', message: 'Unsupported cadence.' })
   if (trigger < 0 || trigger > 1) issues.push({ path: 'trigger.value', message: 'Probability must be between 0 and 1.' })
   if (maxOrder <= 0) issues.push({ path: 'action.maxCollateral', message: 'Max order collateral must be greater than 0.' })
+  if (maxOrder > 10) issues.push({ path: 'action.maxCollateral', message: 'P0 max order collateral is capped at 10.' })
   if (cap <= 0) issues.push({ path: 'policy.maxTotalCapitalAtRisk', message: 'Hard capital cap is required.' })
   if (cap < maxOrder) issues.push({ path: 'policy.maxTotalCapitalAtRisk', message: 'Hard cap cannot be below one order.' })
   if (!Number.isInteger(manifest.policy.maxRounds) || manifest.policy.maxRounds < 1) issues.push({ path: 'policy.maxRounds', message: 'At least one round is required.' })

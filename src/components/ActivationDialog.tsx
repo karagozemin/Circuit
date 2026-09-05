@@ -177,7 +177,7 @@ export function ActivationDialog({
 
       <div className="activation-disclosure">
         <LockKeyhole size={15} />
-        <p><strong>Four wallet confirmations</strong><span>Create strategy, bind market, fund Reactivity, then arm. No key leaves your wallet.</span></p>
+        <p><strong>Four wallet confirmations</strong><span>Create strategy, bind market, fund Reactivity, then arm. Live orders use direct market-sdk calls and each asks your wallet to sign.</span></p>
       </div>
 
       {error && <div className="activation-error"><CircleAlert size={15} /><span>{error}</span></div>}

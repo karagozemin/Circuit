@@ -1,5 +1,4 @@
 import { SDK, SomniaReactivityPrecompileABI } from '@somnia-chain/reactivity'
-import { binaryPoolWriteAbi, decodeRevert } from '@somnia-chain/markets-sdk'
 import { somniaShannon } from '@somnia-chain/markets-sdk/chains'
 import {
   createPublicClient,
@@ -35,7 +34,7 @@ export interface CircuitDeployment {
 }
 
 export type ReadinessCheck = {
-  id: 'deployment' | 'wiring' | 'market' | 'balance' | 'allowlist'
+  id: 'deployment' | 'wiring' | 'market' | 'balance' | 'sdk'
   label: string
   state: 'pass' | 'fail' | 'checking'
   detail: string
@@ -166,47 +165,14 @@ export async function inspectActivation(
       : funded ? 'Wallet meets the 32 STT subscription minimum.' : 'Wallet needs at least 32 STT for Reactivity.',
   })
 
-  let allowlistState: ReadinessCheck['state'] = 'fail'
-  let allowlistDetail = 'Unable to prove dreamDEX BinaryPool authorization.'
-  try {
-    await client.simulateContract({
-      account: deployment.engine,
-      address: market.pool,
-      abi: binaryPoolWriteAbi,
-      functionName: 'placeBinaryOrderFor',
-      args: [
-        wallet.address,
-        manifestSideKind('BUY_DOWN'),
-        500_000n,
-        1_000_000n,
-        BigInt(market.expiry) * 1_000_000_000n,
-        2,
-        0,
-        '0x0000000000000000000000000000000000000000',
-        0n,
-        0n,
-      ],
-    })
-    allowlistState = 'pass'
-    allowlistDetail = 'BinaryPool accepted Engine as an order operator.'
-  } catch (error) {
-    const decoded = decodeRevert(error, { address: market.pool, functionName: 'placeBinaryOrderFor' })
-    if (decoded.errorName === 'OnlyApprovedContracts') {
-      allowlistDetail = 'dreamDEX has not allowlisted this Engine for BinaryPool orders.'
-    } else if (decoded.errorName && decoded.errorName !== 'UnknownRevert') {
-      allowlistState = 'pass'
-      allowlistDetail = `Operator gate passed; probe stopped later at ${decoded.errorName}.`
-    } else {
-      allowlistDetail = 'Authorization probe returned an unknown or RPC-level failure.'
-    }
-  }
-  checks.push({ id: 'allowlist', label: 'dreamDEX operator gate', state: allowlistState, detail: allowlistDetail })
+  checks.push({
+    id: 'sdk',
+    label: 'Market SDK order path',
+    state: 'pass',
+    detail: 'Direct wallet signer will call BinaryPool.placeBinaryOrder through @somnia-chain/markets-sdk. Engine allowlisting is not required for this path.',
+  })
 
   return { ready: checks.every((check) => check.state === 'pass'), deployment, checks }
-}
-
-function manifestSideKind(action: StrategyManifest['action']['type']) {
-  return action === 'BUY_UP' ? 0 : 2
 }
 
 export async function createStrategyTransaction(

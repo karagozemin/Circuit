@@ -17,6 +17,7 @@ The repository contains:
 - live BTC/ETH Event Contract discovery through `@somnia-chain/markets-sdk`;
 - chain-head status and expiry gating before activation;
 - a bounded IOC order dry-run and guarded broadcast script;
+- a browser wallet execution path that sends bounded manual IOC orders through `@somnia-chain/markets-sdk` and asks the connected wallet to sign;
 - a live BinaryPool authorization diagnostic;
 - a Solidity Reactivity handler with emitter/topic validation and callback idempotency;
 - a `CircuitEngine` with manifest anchoring, market binding, risk caps, state transitions, replay protection, IOC execution and actual-balance accounting;
@@ -26,7 +27,7 @@ The repository contains:
 - real owner-signed pause and resume transactions with explorer-linked receipts;
 - a deterministic Engine/handler Shannon deployment script with post-deploy wiring verification.
 
-The UI does not present local simulation as a completed on-chain strategy. `Activate` requires a real connected Shannon wallet, verified live market, deployed Engine/handler bytecode, correct wiring, the 32 STT Reactivity minimum, and a passing dreamDEX BinaryPool operator probe. Missing deployment configuration or system allowlisting is shown as a blocking preflight result and no wallet write is requested.
+The UI does not present local simulation as a completed on-chain strategy. `Activate` requires a real connected Shannon wallet, verified live market, deployed Engine/handler bytecode, correct wiring and the 32 STT Reactivity minimum. The live “Send SDK IOC” action is a bounded manual execution probe: it uses the connected wallet directly through `@somnia-chain/markets-sdk`, and every order plus any first-use token approval is explicitly signed by the user. It does not mutate the Engine’s cumulative accounting; fully autonomous strategy execution still requires the separate system-allowlisted `placeBinaryOrderFor` path.
 
 ## Run
 
@@ -50,9 +51,9 @@ VITE_CIRCUIT_ENGINE_ADDRESS=0x...
 VITE_CIRCUIT_HANDLER_ADDRESS=0x...
 ```
 
-Then restart Vite and run the read-only authorization proof printed by the deploy command. The Engine must pass dreamDEX's BinaryPool system-contract gate before the activation review enables writes. Never put the deployer key in a `VITE_*` variable.
+Then restart Vite. The frontend activation review uses the public addresses only; no operator key is bundled into the browser. Never put the deployer key in a `VITE_*` variable.
 
-The current Shannon deployment and receipt references are recorded in [`deployments/shannon.json`](deployments/shannon.json). Its dreamDEX BinaryPool authorization remains `pending` until the system-contract allowlist probe passes.
+The current Shannon deployment and receipt references are recorded in [`deployments/shannon.json`](deployments/shannon.json). Its dreamDEX BinaryPool delegated-operator authorization remains `pending`; this is only needed for future autonomous Engine-side `placeBinaryOrderFor` execution, not for the current wallet-signed SDK path.
 
 ## Verification
 
