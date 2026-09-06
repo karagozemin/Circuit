@@ -2,7 +2,8 @@ import { SOMNIA_TESTNET_ADDRESSES, SomniaMarkets } from '@somnia-chain/markets-s
 import { somniaShannon } from '@somnia-chain/markets-sdk/chains'
 import type { Hex } from 'viem'
 
-const viteEnv = (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env ?? {}
+const nodeEnv = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env ?? {}
+const viteEnv = (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env ?? nodeEnv
 
 export const SHANNON_CHAIN_ID = 50_312
 export const SHANNON_RPC_URL = viteEnv.VITE_SOMNIA_RPC_URL ?? 'https://api.infra.testnet.somnia.network'

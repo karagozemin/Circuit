@@ -10,6 +10,9 @@ Circuit compiles a visual or natural-language strategy into a deterministic mani
 
 ## Current Status
 
+The lifecycle implementation and current verification limits are tracked in [acceptance evidence](docs/ACCEPTANCE.md). The complete live PRD Definition of Done is still open. See [keeper operations](docs/AUTOMATION.md) for event-driven execution, settlement sync and owner-run rollover.
+
+
 The repository contains:
 
 - a working React strategy builder and risk review surface;
@@ -24,7 +27,7 @@ The repository contains:
 - deterministic frontend manifest hashing and Solidity config encoding.
 - real injected-wallet connection with account restoration, STT balance, Shannon network switching, account/chain event handling and local disconnect.
 - a receipt-driven activation review that creates the strategy, atomically binds the live market and handler, creates the on-chain Reactivity subscription, then arms the strategy;
-- a user-owned `CircuitSmartAccount` path: the account can be linked to a strategy, prepared from the activation review with explicit owner-signed funding/approval transactions, and called by the Engine only for a direct BinaryPool `placeBinaryOrder`;
+- a user-owned `CircuitSmartAccount` path: the account can be linked to a strategy, prepared from the activation review with explicit owner-signed funding/approval transactions, and called by the Engine for a bounded direct BinaryPool `placeBinaryOrder` and exact-position module redemption;
 - real owner-signed pause and resume transactions with explorer-linked receipts;
 - a deterministic Engine/handler Shannon deployment script with post-deploy wiring verification.
 
@@ -57,7 +60,7 @@ Then restart Vite. The frontend activation review uses the public addresses only
 
 `smart-account:deploy` creates one account owned by the deployer address and restricted to the deployed Engine. Copy its `VITE_CIRCUIT_SMART_ACCOUNT_ADDRESS` output into `.env.local`, restart Vite, connect that owner wallet, choose an eligible live market, and use `Prepare account` in the activation review. Circuit then requests only the missing tUSDC funding and current-pool approval before activation.
 
-The current Shannon deployment and receipt references are recorded in [`deployments/shannon.json`](deployments/shannon.json). Its dreamDEX BinaryPool delegated-operator authorization remains `pending`; this is only needed for future autonomous Engine-side `placeBinaryOrderFor` execution, not for the current wallet-signed SDK path.
+The current Shannon deployment and receipt references are recorded in [`deployments/shannon.json`](deployments/shannon.json). The linked smart-account path does not require dreamDEX delegated-operator allowlisting. Current subscription IDs, funding/approval receipts and explicit missing live callback/settlement evidence are recorded there.
 
 ## Verification
 

@@ -1,0 +1,153 @@
+Compiling 1 files with Solc 0.8.30
+Solc 0.8.30 finished in 686.63ms
+Compiler run successful!
+
+Ran 1 test for contracts/test/CircuitEngine.t.sol:CircuitEngineTest
+[PASS] testResolutionCallbackRedeemsAndReturnsToArmedSuccessor() (gas: 773586)
+Traces:
+  [917786] CircuitEngineTest::testResolutionCallbackRedeemsAndReturnsToArmedSuccessor()
+    ├─ [283] CircuitReactivityHandler::ORDER_FILLED_TOPIC() [staticcall]
+    │   └─ ← [Return] 0xc87f4223e9e7c4e4f39f9b34fc9d64d78cdb95d9035b3748cbde59521261a399
+    ├─ [0] VM::prank(0x0000000000000000000000000000000000000100)
+    │   └─ ← [Return]
+    ├─ [107822] CircuitReactivityHandler::onEvent(MockBinaryPool: [0xF62849F9A0B5Bf2913b396098F7c7019b51A820a], [0xc87f4223e9e7c4e4f39f9b34fc9d64d78cdb95d9035b3748cbde59521261a399, 0x00000000000000000000000000000000000000000000000000000000000002be, 0x00000000000000000000000000000000000000000000000000000000000002bf], 0x00000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000b71b0)
+    │   ├─ [66922] CircuitEngine::handleMarketFill(0xfc80b1669181cff66d07f498553007ca3a736ed2aa585f396ca5e5b91db49ccd, 1, 0x000000000000000000000000000000000000000000000000000000000000007b, MockBinaryPool: [0xF62849F9A0B5Bf2913b396098F7c7019b51A820a], 750000 [7.5e5], 0x179fe2da3c3acee909e44e3b3aea9fb1a5b4955ea884b2184f98b5f07be48e72)
+    │   │   ├─ emit TriggerMatched(strategyId: 0xfc80b1669181cff66d07f498553007ca3a736ed2aa585f396ca5e5b91db49ccd, marketId: 0x000000000000000000000000000000000000000000000000000000000000007b, round: 1, fillPrice: 750000 [7.5e5])
+    │   │   ├─ emit ReactivityCallbackProcessed(strategyId: 0xfc80b1669181cff66d07f498553007ca3a736ed2aa585f396ca5e5b91db49ccd, callbackId: 0x179fe2da3c3acee909e44e3b3aea9fb1a5b4955ea884b2184f98b5f07be48e72)
+    │   │   └─ ← [Stop]
+    │   ├─ emit ReactivityCallbackProcessed(callbackId: 0x179fe2da3c3acee909e44e3b3aea9fb1a5b4955ea884b2184f98b5f07be48e72, strategyId: 0xfc80b1669181cff66d07f498553007ca3a736ed2aa585f396ca5e5b91db49ccd, marketId: 0x000000000000000000000000000000000000000000000000000000000000007b, pool: MockBinaryPool: [0xF62849F9A0B5Bf2913b396098F7c7019b51A820a], round: 1, fillPrice: 750000 [7.5e5])
+    │   └─ ← [Stop]
+    ├─ [0] VM::prank(0x000000000000000000000000000000000000cafE)
+    │   └─ ← [Return]
+    ├─ [192704] CircuitEngine::executeReadyAction(0xfc80b1669181cff66d07f498553007ca3a736ed2aa585f396ca5e5b91db49ccd, 745000 [7.45e5], 10000000 [1e7])
+    │   ├─ [2334] MockBinaryMarket::status() [staticcall]
+    │   │   └─ ← [Return] 1
+    │   ├─ [410] MockBinaryMarket::expiry() [staticcall]
+    │   │   └─ ← [Return] 1000900 [1e6]
+    │   ├─ [421] MockBinaryPool::getOrderBookParameters() [staticcall]
+    │   │   └─ ← [Return] OrderBookParameters({ tickSize: 1000, minQuantity: 1000000 [1e6], lotSize: 1000000 [1e6] })
+    │   ├─ emit OrderRequested(strategyId: 0xfc80b1669181cff66d07f498553007ca3a736ed2aa585f396ca5e5b91db49ccd, actionKey: 0x33bfc5093bc7fd04184d1859efec1ac43975ec7dbc653ba36a6dee18edeba62f, yesPrice: 745000 [7.45e5], quantity: 10000000 [1e7], maxSpend: 2550000 [2.55e6])
+    │   ├─ [2507] MockCollateral::balanceOf(CircuitSmartAccount: [0xA4AD4f68d0b91CFD19687c881e50f3A00242828c]) [staticcall]
+    │   │   └─ ← [Return] 100000000 [1e8]
+    │   ├─ [2613] MockOutcome::balanceOf(CircuitSmartAccount: [0xA4AD4f68d0b91CFD19687c881e50f3A00242828c], 2) [staticcall]
+    │   │   └─ ← [Return] 0
+    │   ├─ [410] MockBinaryMarket::expiry() [staticcall]
+    │   │   └─ ← [Return] 1000900 [1e6]
+    │   ├─ [39603] CircuitSmartAccount::execute(MockBinaryPool: [0xF62849F9A0B5Bf2913b396098F7c7019b51A820a], 0, 0x718c2d4d000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000b5e28000000000000000000000000000000000000000000000000000000000098968000000000000000000000000000000000000000000000000000038e5030f4a80000000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001)
+    │   │   ├─ [35887] MockBinaryPool::placeBinaryOrder(2, 745000 [7.45e5], 10000000 [1e7], 1000900000000000 [1e15], 2, 0, 0x0000000000000000000000000000000000000000, 0, 1)
+    │   │   │   ├─ [3494] MockCollateral::debit(CircuitSmartAccount: [0xA4AD4f68d0b91CFD19687c881e50f3A00242828c], 2500000 [2.5e6])
+    │   │   │   │   └─ ← [Stop]
+    │   │   │   ├─ [20747] MockOutcome::credit(CircuitSmartAccount: [0xA4AD4f68d0b91CFD19687c881e50f3A00242828c], 2, 10000000 [1e7])
+    │   │   │   │   └─ ← [Stop]
+    │   │   │   └─ ← [Return] true, 41
+    │   │   ├─ emit Executed(caller: CircuitEngine: [0xa0Cb889707d426A7A386870A03bc70d1b0697598], target: MockBinaryPool: [0xF62849F9A0B5Bf2913b396098F7c7019b51A820a], value: 0, selector: 0x718c2d4d)
+    │   │   └─ ← [Return] 0x00000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000029
+    │   ├─ [507] MockCollateral::balanceOf(CircuitSmartAccount: [0xA4AD4f68d0b91CFD19687c881e50f3A00242828c]) [staticcall]
+    │   │   └─ ← [Return] 97500000 [9.75e7]
+    │   ├─ [613] MockOutcome::balanceOf(CircuitSmartAccount: [0xA4AD4f68d0b91CFD19687c881e50f3A00242828c], 2) [staticcall]
+    │   │   └─ ← [Return] 10000000 [1e7]
+    │   ├─ emit OrderExecuted(strategyId: 0xfc80b1669181cff66d07f498553007ca3a736ed2aa585f396ca5e5b91db49ccd, actionKey: 0x33bfc5093bc7fd04184d1859efec1ac43975ec7dbc653ba36a6dee18edeba62f, orderId: 41, collateralUsed: 2500000 [2.5e6], positionReceived: 10000000 [1e7])
+    │   └─ ← [Return] 41, 2500000 [2.5e6], 10000000 [1e7]
+    ├─ [3352] MockBinaryMarket::setStatus(4)
+    │   └─ ← [Stop]
+    ├─ [261] CircuitReactivityHandler::STATUS_CHANGED_TOPIC() [staticcall]
+    │   └─ ← [Return] 0xe1377aa21d49fa10bb9ece6a0cd4f75597a90a80c3750f7f7674967f49ab9a62
+    ├─ [0] VM::prank(0x0000000000000000000000000000000000000100)
+    │   └─ ← [Return]
+    ├─ [102950] CircuitReactivityHandler::onEvent(MockBinaryMarket: [0x5991A2dF15A8F6A256D3Ec51E99254Cd3fb576A9], [0xe1377aa21d49fa10bb9ece6a0cd4f75597a90a80c3750f7f7674967f49ab9a62, 0x0000000000000000000000000000000000000000000000000000000000000003, 0x0000000000000000000000000000000000000000000000000000000000000004], 0x)
+    │   ├─ [91831] CircuitEngine::handleResolution(0xfc80b1669181cff66d07f498553007ca3a736ed2aa585f396ca5e5b91db49ccd, 0x000000000000000000000000000000000000000000000000000000000000007b, 0x696f8e83b57ee138b6054bede18cf07e0b286a81bb6332ee3196622d30ee7304)
+    │   │   ├─ [386] MockBinaryMarket::isVoided() [staticcall]
+    │   │   │   └─ ← [Return] false
+    │   │   ├─ [352] MockBinaryMarket::isResolved() [staticcall]
+    │   │   │   └─ ← [Return] true
+    │   │   ├─ [2924] MockBinaryMarket::payoutNumerators() [staticcall]
+    │   │   │   └─ ← [Return] [0, 10000000 [1e7]]
+    │   │   ├─ [507] MockCollateral::balanceOf(CircuitSmartAccount: [0xA4AD4f68d0b91CFD19687c881e50f3A00242828c]) [staticcall]
+    │   │   │   └─ ← [Return] 97500000 [9.75e7]
+    │   │   ├─ [613] MockOutcome::balanceOf(CircuitSmartAccount: [0xA4AD4f68d0b91CFD19687c881e50f3A00242828c], 2) [staticcall]
+    │   │   │   └─ ← [Return] 10000000 [1e7]
+    │   │   ├─ [4145] CircuitSmartAccount::execute(MockOutcome: [0x2e234DAe75C793f67A35089C9d99245E1C58470b], 0, 0x426a8493000000000000000000000000c7183455a4c133ae270771860664b6b7ec320bb100000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000989680)
+    │   │   │   ├─ [427] MockOutcome::approve(MockBinaryModule: [0xc7183455a4C133Ae270771860664b6B7ec320bB1], 2, 10000000 [1e7])
+    │   │   │   │   └─ ← [Return] true
+    │   │   │   ├─ emit Executed(caller: CircuitEngine: [0xa0Cb889707d426A7A386870A03bc70d1b0697598], target: MockOutcome: [0x2e234DAe75C793f67A35089C9d99245E1C58470b], value: 0, selector: 0x426a8493)
+    │   │   │   └─ ← [Return] 0x0000000000000000000000000000000000000000000000000000000000000001
+    │   │   ├─ [18767] CircuitSmartAccount::execute(MockBinaryModule: [0xc7183455a4C133Ae270771860664b6B7ec320bB1], 0, 0x5b1ffcf200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000007b00000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000989680)
+    │   │   │   ├─ [12571] MockBinaryModule::redeem(0, 0x0000000000000000000000000000000000000000000000000000000000000000, 0x000000000000000000000000000000000000000000000000000000000000007b, 1, 10000000 [1e7])
+    │   │   │   │   ├─ [334] MockBinaryMarket::status() [staticcall]
+    │   │   │   │   │   └─ ← [Return] 4
+    │   │   │   │   ├─ [803] MockOutcome::debit(CircuitSmartAccount: [0xA4AD4f68d0b91CFD19687c881e50f3A00242828c], 2, 10000000 [1e7])
+    │   │   │   │   │   └─ ← [Stop]
+    │   │   │   │   ├─ [334] MockBinaryMarket::status() [staticcall]
+    │   │   │   │   │   └─ ← [Return] 4
+    │   │   │   │   ├─ [349] MockBinaryMarket::winner() [staticcall]
+    │   │   │   │   │   └─ ← [Return] 1
+    │   │   │   │   ├─ [507] MockCollateral::balanceOf(CircuitSmartAccount: [0xA4AD4f68d0b91CFD19687c881e50f3A00242828c]) [staticcall]
+    │   │   │   │   │   └─ ← [Return] 97500000 [9.75e7]
+    │   │   │   │   ├─ [525] MockCollateral::setBalance(CircuitSmartAccount: [0xA4AD4f68d0b91CFD19687c881e50f3A00242828c], 107500000 [1.075e8])
+    │   │   │   │   │   └─ ← [Stop]
+    │   │   │   │   └─ ← [Stop]
+    │   │   │   ├─ emit Executed(caller: CircuitEngine: [0xa0Cb889707d426A7A386870A03bc70d1b0697598], target: MockBinaryModule: [0xc7183455a4C133Ae270771860664b6B7ec320bB1], value: 0, selector: 0x5b1ffcf2)
+    │   │   │   └─ ← [Return] 0x
+    │   │   ├─ [507] MockCollateral::balanceOf(CircuitSmartAccount: [0xA4AD4f68d0b91CFD19687c881e50f3A00242828c]) [staticcall]
+    │   │   │   └─ ← [Return] 107500000 [1.075e8]
+    │   │   ├─ [613] MockOutcome::balanceOf(CircuitSmartAccount: [0xA4AD4f68d0b91CFD19687c881e50f3A00242828c], 2) [staticcall]
+    │   │   │   └─ ← [Return] 0
+    │   │   ├─ emit RoundResolved(strategyId: 0xfc80b1669181cff66d07f498553007ca3a736ed2aa585f396ca5e5b91db49ccd, marketId: 0x000000000000000000000000000000000000000000000000000000000000007b, round: 1, result: 0, realizedProceeds: 10000000 [1e7])
+    │   │   ├─ emit RolloverComputed(strategyId: 0xfc80b1669181cff66d07f498553007ca3a736ed2aa585f396ca5e5b91db49ccd, nextOrderBudget: 5000000 [5e6])
+    │   │   ├─ emit ReactivityCallbackProcessed(strategyId: 0xfc80b1669181cff66d07f498553007ca3a736ed2aa585f396ca5e5b91db49ccd, callbackId: 0x696f8e83b57ee138b6054bede18cf07e0b286a81bb6332ee3196622d30ee7304)
+    │   │   └─ ← [Stop]
+    │   └─ ← [Stop]
+    ├─ [0] VM::prank(0x0000000000000000000000000000000000000100)
+    │   └─ ← [Return]
+    ├─ [23992] CircuitReactivityHandler::onEvent(MockBinaryMarket: [0x5991A2dF15A8F6A256D3Ec51E99254Cd3fb576A9], [0xe1377aa21d49fa10bb9ece6a0cd4f75597a90a80c3750f7f7674967f49ab9a62, 0x0000000000000000000000000000000000000000000000000000000000000003, 0x0000000000000000000000000000000000000000000000000000000000000004], 0x)
+    │   ├─ [20873] CircuitEngine::handleResolution(0xfc80b1669181cff66d07f498553007ca3a736ed2aa585f396ca5e5b91db49ccd, 0x000000000000000000000000000000000000000000000000000000000000007b, 0x696f8e83b57ee138b6054bede18cf07e0b286a81bb6332ee3196622d30ee7304)
+    │   │   └─ ← [Stop]
+    │   └─ ← [Stop]
+    ├─ [254962] → new MockBinaryMarket@0x03A6a84cD762D9707A21605b548aaaB891562aAb
+    │   └─ ← [Return] 1048 bytes of code
+    ├─ [3350] MockBinaryModule::useMarket(MockBinaryMarket: [0x03A6a84cD762D9707A21605b548aaaB891562aAb])
+    │   └─ ← [Stop]
+    ├─ [151452] CircuitEngine::bindMarket(0xfc80b1669181cff66d07f498553007ca3a736ed2aa585f396ca5e5b91db49ccd, 0x00000000000000000000000000000000000000000000000000000000000003e7, MockBinaryMarket: [0x03A6a84cD762D9707A21605b548aaaB891562aAb], MockBinaryPool: [0xF62849F9A0B5Bf2913b396098F7c7019b51A820a], MockCollateral: [0x5615dEB798BB3E4dFa0139dFa1b3D433Cc23b72f], MockOutcome: [0x2e234DAe75C793f67A35089C9d99245E1C58470b], 2)
+    │   ├─ [3439] MockBinaryModule::markets(0x00000000000000000000000000000000000000000000000000000000000003e7) [staticcall]
+    │   │   ├─ [283] MockBinaryMarket::pool() [staticcall]
+    │   │   │   └─ ← [Return] MockBinaryPool: [0xF62849F9A0B5Bf2913b396098F7c7019b51A820a]
+    │   │   ├─ [410] MockBinaryMarket::expiry() [staticcall]
+    │   │   │   └─ ← [Return] 1001800 [1.001e6]
+    │   │   └─ ← [Return] MarketRecord({ oracleQuestionId: 0, outcomeSlotCount: 2, voidPolicy: 0, collateral: 0x5615dEB798BB3E4dFa0139dFa1b3D433Cc23b72f, originOperatorId: 0, originVenueId: 0x0000000000000000000000000000000000000000000000000000000000000000, oracleAdapter: 0x0000000000000000000000000000000000000000, creator: 0x0000000000000000000000000000000000000000, market: 0x03A6a84cD762D9707A21605b548aaaB891562aAb, pool: 0xF62849F9A0B5Bf2913b396098F7c7019b51A820a, yesId: 1, noId: 2, tradingStart: 1000900 [1e6], expiry: 1001800 [1.001e6] })
+    │   ├─ [410] MockBinaryMarket::expiry() [staticcall]
+    │   │   └─ ← [Return] 1000900 [1e6]
+    │   ├─ [10917] CircuitReactivityHandler::unbindMarket(MockBinaryPool: [0xF62849F9A0B5Bf2913b396098F7c7019b51A820a])
+    │   │   ├─ emit MarketUnbound(pool: MockBinaryPool: [0xF62849F9A0B5Bf2913b396098F7c7019b51A820a])
+    │   │   └─ ← [Stop]
+    │   ├─ [13717] CircuitReactivityHandler::unbindMarket(MockBinaryMarket: [0x5991A2dF15A8F6A256D3Ec51E99254Cd3fb576A9])
+    │   │   ├─ emit MarketUnbound(pool: MockBinaryMarket: [0x5991A2dF15A8F6A256D3Ec51E99254Cd3fb576A9])
+    │   │   └─ ← [Stop]
+    │   ├─ [283] MockBinaryMarket::pool() [staticcall]
+    │   │   └─ ← [Return] MockBinaryPool: [0xF62849F9A0B5Bf2913b396098F7c7019b51A820a]
+    │   ├─ [237] MockBinaryMarket::collateral() [staticcall]
+    │   │   └─ ← [Return] MockCollateral: [0x5615dEB798BB3E4dFa0139dFa1b3D433Cc23b72f]
+    │   ├─ [260] MockBinaryMarket::outcomeToken() [staticcall]
+    │   │   └─ ← [Return] MockOutcome: [0x2e234DAe75C793f67A35089C9d99245E1C58470b]
+    │   ├─ [250] MockBinaryMarket::noId() [staticcall]
+    │   │   └─ ← [Return] 2
+    │   ├─ [334] MockBinaryMarket::status() [staticcall]
+    │   │   └─ ← [Return] 1
+    │   ├─ [410] MockBinaryMarket::expiry() [staticcall]
+    │   │   └─ ← [Return] 1001800 [1.001e6]
+    │   ├─ [4215] CircuitReactivityHandler::bindMarket(MockBinaryPool: [0xF62849F9A0B5Bf2913b396098F7c7019b51A820a], 0xfc80b1669181cff66d07f498553007ca3a736ed2aa585f396ca5e5b91db49ccd, 0x00000000000000000000000000000000000000000000000000000000000003e7, 2)
+    │   │   ├─ emit MarketBound(pool: MockBinaryPool: [0xF62849F9A0B5Bf2913b396098F7c7019b51A820a], strategyId: 0xfc80b1669181cff66d07f498553007ca3a736ed2aa585f396ca5e5b91db49ccd, marketId: 0x00000000000000000000000000000000000000000000000000000000000003e7, round: 2)
+    │   │   └─ ← [Stop]
+    │   ├─ [91930] CircuitReactivityHandler::bindResolutionMarket(MockBinaryMarket: [0x03A6a84cD762D9707A21605b548aaaB891562aAb], 0xfc80b1669181cff66d07f498553007ca3a736ed2aa585f396ca5e5b91db49ccd, 0x00000000000000000000000000000000000000000000000000000000000003e7, 2)
+    │   │   ├─ emit MarketBound(pool: MockBinaryMarket: [0x03A6a84cD762D9707A21605b548aaaB891562aAb], strategyId: 0xfc80b1669181cff66d07f498553007ca3a736ed2aa585f396ca5e5b91db49ccd, marketId: 0x00000000000000000000000000000000000000000000000000000000000003e7, round: 2)
+    │   │   └─ ← [Stop]
+    │   ├─ emit MarketBound(strategyId: 0xfc80b1669181cff66d07f498553007ca3a736ed2aa585f396ca5e5b91db49ccd, marketId: 0x00000000000000000000000000000000000000000000000000000000000003e7, pool: MockBinaryPool: [0xF62849F9A0B5Bf2913b396098F7c7019b51A820a], round: 2)
+    │   └─ ← [Stop]
+    ├─ [8331] CircuitEngine::getStrategy(0xfc80b1669181cff66d07f498553007ca3a736ed2aa585f396ca5e5b91db49ccd) [staticcall]
+    │   └─ ← [Return] StrategyConfig({ assetId: 0, intervalSec: 900, triggerType: 0, triggerValue: 700000 [7e5], actionType: 1, maxOrderCollateral: 10000000 [1e7], maxSlippageBps: 200, maxTotalCapitalAtRisk: 20000000 [2e7], maxRounds: 5, stopAfterLosses: 2, minSecondsToExpiry: 120, rollPercentBps: 5000 }), StrategyRuntime({ owner: 0x7FA9385bE102ac3EAc297483Dd6233D62b3e1496, manifestHash: 0xc842aa97247da6c74a47da4f0f37037306a166a8d3441fd1b68941e9697c3f35, status: 2, pausedFrom: 0, currentMarketId: 0x00000000000000000000000000000000000000000000000000000000000003e7, currentMarket: 0x03A6a84cD762D9707A21605b548aaaB891562aAb, currentPool: 0xF62849F9A0B5Bf2913b396098F7c7019b51A820a, collateral: 0x5615dEB798BB3E4dFa0139dFa1b3D433Cc23b72f, outcomeToken: 0x2e234DAe75C793f67A35089C9d99245E1C58470b, outcomeTokenId: 2, round: 2, consecutiveLosses: 0, cumulativeCapitalUsed: 2500000 [2.5e6], currentPositionSize: 0, nextOrderBudget: 5000000 [5e6], triggerFillPrice: 0, executionAccount: 0xA4AD4f68d0b91CFD19687c881e50f3A00242828c })
+    ├─ [973] CircuitReactivityHandler::bindings(MockBinaryMarket: [0x5991A2dF15A8F6A256D3Ec51E99254Cd3fb576A9]) [staticcall]
+    │   └─ ← [Return] 0x0000000000000000000000000000000000000000000000000000000000000000, 0x0000000000000000000000000000000000000000000000000000000000000000, 0, false
+    └─ ← [Stop]
+
+Suite result: ok. 1 passed; 0 failed; 0 skipped; finished in 1.21ms (338.13µs CPU time)
+
+Ran 1 test suite in 91.96ms (1.21ms CPU time): 1 tests passed, 0 failed, 0 skipped (1 total tests)

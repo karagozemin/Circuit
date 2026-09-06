@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.30;
 
+import {IBinaryLifecycle, IBinaryModule} from "./interfaces/IBinaryLifecycle.sol";
 import {ICircuitEngine} from "./interfaces/ICircuitEngine.sol";
 import {ICircuitReactivityBinder} from "./interfaces/ICircuitReactivityBinder.sol";
 import {ICircuitSmartAccount} from "./interfaces/ICircuitSmartAccount.sol";
@@ -60,7 +61,8 @@ contract CircuitEngine is ICircuitEngine {
     enum RoundResult {
         WIN,
         LOSS,
-        VOID
+        VOID,
+        SKIPPED
     }
 
     enum StopReason {
@@ -123,8 +125,12 @@ contract CircuitEngine is ICircuitEngine {
     }
 
     address public immutable admin;
+    IBinaryModule public immutable binaryModule;
     address public reactivityHandler;
     uint256 private entered;
+    mapping(bytes32 => address) public seriesCreators;
+    mapping(bytes32 => bool) public automaticRollover;
+    event AutomaticRolloverUpdated(bytes32 indexed strategyId, bool enabled);
     mapping(address owner => uint256 nonce) public ownerNonces;
     mapping(bytes32 strategyId => StrategyConfig) private configs;
     mapping(bytes32 strategyId => StrategyRuntime) private runtimes;
@@ -180,9 +186,10 @@ contract CircuitEngine is ICircuitEngine {
         entered = 0;
     }
 
-    constructor(address initialAdmin, address initialReactivityHandler) {
-        if (initialAdmin == address(0) || initialReactivityHandler == address(0)) revert InvalidAddress();
+    constructor(address initialAdmin, address initialReactivityHandler, address module) {
+        if (initialAdmin == address(0) || initialReactivityHandler == address(0) || module == address(0)) revert InvalidAddress();
         admin = initialAdmin;
+        binaryModule = IBinaryModule(module);
         reactivityHandler = initialReactivityHandler;
     }
 
@@ -232,6 +239,41 @@ contract CircuitEngine is ICircuitEngine {
         address outcomeToken,
         uint256 outcomeTokenId
     ) external onlyOwner(strategyId) {
+        _bindMarket(strategyId, marketId, market, pool, collateral, outcomeToken, outcomeTokenId);
+    }
+
+    /// @notice Explicit owner consent for bounded approvals to verified successor pools.
+    function setAutomaticRollover(bytes32 strategyId, bool enabled) external onlyOwner(strategyId) {
+        if (enabled && runtimes[strategyId].executionAccount == address(0)) revert InvalidExecutionAccount();
+        automaticRollover[strategyId] = enabled;
+        emit AutomaticRolloverUpdated(strategyId, enabled);
+    }
+
+    /// @notice Any keeper can progress a series authenticated by a real creator callback.
+    function rollToNextMarket(bytes32 strategyId, bytes32 marketId) external nonReentrant {
+        StrategyRuntime storage runtime = runtimes[strategyId];
+        StrategyConfig storage config = configs[strategyId];
+        if (!automaticRollover[strategyId] || runtime.status != StrategyStatus.ROLLING) revert InvalidState();
+        (address creator, uint8 assetId, uint32 intervalSec, bool verified) =
+            ICircuitReactivityBinder(reactivityHandler).marketMetadata(marketId);
+        if (!verified || creator != seriesCreators[strategyId] || assetId != config.assetId || intervalSec != config.intervalSec) {
+            revert InvalidMarketBinding();
+        }
+        IBinaryModule.MarketRecord memory record = binaryModule.markets(marketId);
+        if (record.creator != creator) revert InvalidMarketBinding();
+        address previousPool = runtime.currentPool;
+        address outcome = IBinaryMarket(record.market).outcomeToken();
+        _bindMarket(strategyId, marketId, record.market, record.pool, record.collateral, outcome,
+            config.actionType == ActionType.BUY_UP ? record.yesId : record.noId);
+        // Exact, per-round grants. Revocation/paused state prevents this entrypoint from running.
+        ICircuitSmartAccount(runtime.executionAccount).execute(runtime.collateral, 0,
+            abi.encodeWithSignature("approve(address,uint256)", previousPool, 0));
+        ICircuitSmartAccount(runtime.executionAccount).execute(runtime.collateral, 0,
+            abi.encodeWithSignature("approve(address,uint256)", runtime.currentPool, runtime.nextOrderBudget));
+    }
+
+    function _bindMarket(bytes32 strategyId, bytes32 marketId, address market, address pool, address collateral,
+        address outcomeToken, uint256 outcomeTokenId) private {
         StrategyRuntime storage runtime = runtimes[strategyId];
         if (runtime.status != StrategyStatus.VALIDATED && runtime.status != StrategyStatus.ROLLING) {
             revert InvalidState();
@@ -240,6 +282,19 @@ contract CircuitEngine is ICircuitEngine {
             marketId == bytes32(0) || market == address(0) || pool == address(0) || collateral == address(0)
                 || outcomeToken == address(0)
         ) revert InvalidMarketBinding();
+        IBinaryModule.MarketRecord memory record = binaryModule.markets(marketId);
+        if (record.market != market || record.pool != pool || record.collateral != collateral
+            || record.outcomeSlotCount != 2 || record.expiry < record.tradingStart
+            || record.expiry - record.tradingStart != configs[strategyId].intervalSec) revert InvalidMarketBinding();
+        if (runtime.status == StrategyStatus.ROLLING) {
+            if (collateral != runtime.collateral || outcomeToken != runtime.outcomeToken
+                || record.creator != seriesCreators[strategyId]
+                || marketId == runtime.currentMarketId || record.tradingStart < IBinaryMarket(runtime.currentMarket).expiry()
+                || record.expiry <= IBinaryMarket(runtime.currentMarket).expiry()
+                || record.expiry - record.tradingStart != configs[strategyId].intervalSec) revert InvalidMarketBinding();
+            ICircuitReactivityBinder(reactivityHandler).unbindMarket(runtime.currentPool);
+            ICircuitReactivityBinder(reactivityHandler).unbindMarket(runtime.currentMarket);
+        }
         IBinaryMarket binaryMarket = IBinaryMarket(market);
         if (
             binaryMarket.pool() != pool || binaryMarket.collateral() != collateral
@@ -254,6 +309,7 @@ contract CircuitEngine is ICircuitEngine {
             runtime.round++;
             runtime.status = StrategyStatus.ARMED;
         }
+        if (runtime.status == StrategyStatus.VALIDATED) seriesCreators[strategyId] = record.creator;
         runtime.currentMarketId = marketId;
         runtime.currentMarket = market;
         runtime.currentPool = pool;
@@ -263,6 +319,7 @@ contract CircuitEngine is ICircuitEngine {
         runtime.triggerFillPrice = 0;
         runtime.currentPositionSize = 0;
         ICircuitReactivityBinder(reactivityHandler).bindMarket(pool, strategyId, marketId, runtime.round);
+        ICircuitReactivityBinder(reactivityHandler).bindResolutionMarket(market, strategyId, marketId, runtime.round);
         emit MarketBound(strategyId, marketId, pool, runtime.round);
     }
 
@@ -277,6 +334,7 @@ contract CircuitEngine is ICircuitEngine {
     /// @notice Attach a user-owned smart account for direct BinaryPool calls.
     /// Passing zero restores the legacy delegated `placeBinaryOrderFor` path.
     function setExecutionAccount(bytes32 strategyId, address account) external onlyOwner(strategyId) {
+        if (runtimes[strategyId].currentPositionSize != 0) revert InvalidState();
         if (account != address(0)) {
             try ICircuitSmartAccount(account).owner() returns (address accountOwner) {
                 if (accountOwner != runtimes[strategyId].owner) revert InvalidExecutionAccount();
@@ -332,7 +390,7 @@ contract CircuitEngine is ICircuitEngine {
 
         StrategyRuntime storage runtime = runtimes[strategyId];
         StrategyConfig storage config = configs[strategyId];
-        if (runtime.status != StrategyStatus.ARMED) revert InvalidState();
+        if (runtime.status != StrategyStatus.ARMED) return;
         if (runtime.round != round || runtime.currentMarketId != marketId || runtime.currentPool != pool) {
             revert InvalidMarketBinding();
         }
@@ -386,26 +444,73 @@ contract CircuitEngine is ICircuitEngine {
         else emit OrderExecuted(strategyId, plan.actionKey, orderId, collateralUsed, positionReceived);
     }
 
-    function handleResolution(
-        bytes32 strategyId,
-        bytes32 marketId,
-        RoundResult result,
-        uint256 realizedProceeds,
-        bytes32 callbackId
-    ) external onlyHandler {
-        if (processedCallbacks[callbackId]) revert DuplicateCallback();
-        processedCallbacks[callbackId] = true;
+    /// @notice Event payloads never supply the winner or proceeds. Read chain truth and redeem atomically.
+    function handleResolution(bytes32 strategyId, bytes32 marketId, bytes32 callbackId) external onlyHandler nonReentrant {
+        if (processedCallbacks[callbackId]) return;
+        if (_syncStrategy(strategyId, marketId)) {
+            processedCallbacks[callbackId] = true;
+            emit ReactivityCallbackProcessed(strategyId, callbackId);
+        }
+    }
+
+    /// @notice Permissionless missed-callback/restart backstop. Never fabricates a fill price.
+    function syncStrategy(bytes32 strategyId, bytes32 marketId) external nonReentrant returns (bool) {
+        return _syncStrategy(strategyId, marketId);
+    }
+
+    function _syncStrategy(bytes32 strategyId, bytes32 marketId) private returns (bool) {
+        StrategyRuntime storage runtime = runtimes[strategyId];
+        if (runtime.currentMarketId != marketId) revert InvalidMarketBinding();
+        if (runtime.status == StrategyStatus.ARMED || runtime.status == StrategyStatus.TRIGGERED) {
+            if (IBinaryMarket(runtime.currentMarket).expiry() > block.timestamp) return false;
+            _applyResolution(strategyId, RoundResult.SKIPPED, 0);
+            return true;
+        }
+        if (runtime.status != StrategyStatus.WAITING_RESOLUTION) return false;
+        IBinaryLifecycle market = IBinaryLifecycle(runtime.currentMarket);
+        bool voided = market.isVoided();
+        if (!voided && !market.isResolved()) return false;
+        uint256 position = runtime.currentPositionSize;
+        RoundResult result = RoundResult.SKIPPED;
+        uint256 proceeds;
+        if (position > 0) {
+            uint256[] memory payouts = market.payoutNumerators();
+            if (payouts.length != 2) revert InvalidMarketBinding();
+            uint8 side = configs[strategyId].actionType == ActionType.BUY_UP ? 0 : 1;
+            // P0 binary wins are one-hot. Partial distributions must not be mislabelled as wins.
+            if (!voided && payouts[0] != 0 && payouts[1] != 0) revert InvalidMarketBinding();
+            result = voided ? RoundResult.VOID : payouts[side] > 0 ? RoundResult.WIN : RoundResult.LOSS;
+            proceeds = _redeem(runtime, side, position);
+        }
+        _applyResolution(strategyId, result, proceeds);
+        return true;
+    }
+
+    function _redeem(StrategyRuntime storage runtime, uint8 side, uint256 amount) private returns (uint256 proceeds) {
+        address account = runtime.executionAccount;
+        if (account == address(0)) revert InvalidExecutionAccount();
+        uint256 beforeBalance = IERC20Balance(runtime.collateral).balanceOf(account);
+        uint256 beforePosition = IERC6909Balance(runtime.outcomeToken).balanceOf(account, runtime.outcomeTokenId);
+        // Exact per-token approval; no global operator grant or discretionary destination.
+        ICircuitSmartAccount(account).execute(runtime.outcomeToken, 0,
+            abi.encodeWithSignature("approve(address,uint256,uint256)", address(binaryModule), runtime.outcomeTokenId, amount));
+        ICircuitSmartAccount(account).execute(address(binaryModule), 0,
+            abi.encodeCall(IBinaryModule.redeem, (0, bytes32(0), runtime.currentMarketId, side, amount)));
+        uint256 afterBalance = IERC20Balance(runtime.collateral).balanceOf(account);
+        uint256 afterPosition = IERC6909Balance(runtime.outcomeToken).balanceOf(account, runtime.outcomeTokenId);
+        if (afterBalance < beforeBalance || beforePosition < amount || afterPosition != beforePosition - amount) {
+            revert ExternalBalanceIncreased();
+        }
+        proceeds = afterBalance - beforeBalance;
+    }
+
+    function _applyResolution(bytes32 strategyId, RoundResult result, uint256 realizedProceeds) private {
         StrategyRuntime storage runtime = runtimes[strategyId];
         StrategyConfig storage config = configs[strategyId];
-        if (runtime.status != StrategyStatus.WAITING_RESOLUTION || runtime.currentMarketId != marketId) {
-            revert InvalidState();
-        }
-
         if (result == RoundResult.WIN) runtime.consecutiveLosses = 0;
         else if (result == RoundResult.LOSS) runtime.consecutiveLosses++;
         runtime.currentPositionSize = 0;
-        emit RoundResolved(strategyId, marketId, runtime.round, result, realizedProceeds);
-        emit ReactivityCallbackProcessed(strategyId, callbackId);
+        emit RoundResolved(strategyId, runtime.currentMarketId, runtime.round, result, realizedProceeds);
 
         StopReason reason = _stopReason(runtime, config);
         if (reason != StopReason.NONE) {
@@ -440,8 +545,8 @@ contract CircuitEngine is ICircuitEngine {
 
     function _validateConfig(bytes32 manifestHash, StrategyConfig calldata config) private pure {
         if (manifestHash == bytes32(0)) revert InvalidManifest();
-        if (config.intervalSec == 0 || config.triggerValue > PRICE_SCALE) revert InvalidPolicy();
-        if (config.maxOrderCollateral == 0 || config.maxTotalCapitalAtRisk < config.maxOrderCollateral) {
+        if (config.assetId > 1 || (config.intervalSec != 900 && config.intervalSec != 3600) || config.triggerValue > PRICE_SCALE) revert InvalidPolicy();
+        if (config.maxOrderCollateral == 0 || config.maxOrderCollateral > 10_000_000 || config.maxTotalCapitalAtRisk < config.maxOrderCollateral) {
             revert InvalidPolicy();
         }
         if (config.maxRounds == 0 || config.stopAfterLosses == 0) revert InvalidPolicy();

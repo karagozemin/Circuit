@@ -22,7 +22,7 @@ interface ActivationDialogProps {
 type Progress = 'idle' | 'preparing' | 'creating' | 'configuring' | 'binding' | 'subscribing' | 'activating' | 'done'
 
 const progressLabel: Record<Progress, string> = {
-  idle: 'Activate on Shannon',
+  idle: 'Authorize automation & activate',
   preparing: 'Preparing account...',
   creating: 'Creating strategy...',
   configuring: 'Linking smart account...',
@@ -48,6 +48,9 @@ export function ActivationDialog({
   const [strategyId, setStrategyId] = useState<Hex>()
   const [marketBound, setMarketBound] = useState(false)
   const [executionConfigured, setExecutionConfigured] = useState(false)
+  const [successorSubscriptionId, setSuccessorSubscriptionId] = useState<bigint>()
+  const [automaticRolloverConfigured, setAutomaticRolloverConfigured] = useState(false)
+  const [resolutionSubscriptionId, setResolutionSubscriptionId] = useState<bigint>()
   const [subscriptionId, setSubscriptionId] = useState<bigint>()
   const activationKey = useMemo(
     () => `${wallet.address}:${market.marketId}:${JSON.stringify(manifest)}`,
@@ -59,6 +62,9 @@ export function ActivationDialog({
     setMarketBound(false)
     setExecutionConfigured(false)
     setSubscriptionId(undefined)
+    setResolutionSubscriptionId(undefined)
+    setSuccessorSubscriptionId(undefined)
+    setAutomaticRolloverConfigured(false)
     setProgress('idle')
     setError('')
   }, [activationKey])
@@ -141,6 +147,13 @@ export function ActivationDialog({
         onActivity('Market bound', `${market.asset} · ${market.marketId.slice(0, 10)}...`, 'success', bound.hash)
       }
 
+      if (!automaticRolloverConfigured) {
+        setProgress('configuring')
+        const permission = await actions.enableAutomaticRolloverTransaction(provider,wallet.address,latest.deployment,currentStrategyId)
+        setAutomaticRolloverConfigured(true)
+        onActivity('Automatic rollover authorized','Verified same-series windows only; exact next-round pool approvals.','success',permission.hash)
+      }
+
       if (currentSubscriptionId === undefined) {
         setProgress('subscribing')
         const subscribed = await actions.createSubscriptionTransaction(
@@ -152,6 +165,20 @@ export function ActivationDialog({
         currentSubscriptionId = subscribed.subscriptionId
         setSubscriptionId(subscribed.subscriptionId)
         onActivity('Reactivity subscribed', `Subscription #${subscribed.subscriptionId}`, 'reactivity', subscribed.hash)
+      }
+
+      if (resolutionSubscriptionId === undefined) {
+        setProgress('subscribing')
+        const subscribed = await actions.createSubscriptionTransaction(provider, wallet.address, latest.deployment, market, 'resolution')
+        setResolutionSubscriptionId(subscribed.subscriptionId)
+        onActivity('Resolution subscribed', `Subscription #${subscribed.subscriptionId}`, 'reactivity', subscribed.hash)
+      }
+
+      if (successorSubscriptionId === undefined) {
+        setProgress('subscribing')
+        const subscribed = await actions.createSubscriptionTransaction(provider,wallet.address,latest.deployment,market,'successor')
+        setSuccessorSubscriptionId(subscribed.subscriptionId)
+        onActivity('Successor discovery subscribed',`Subscription #${subscribed.subscriptionId}`,'reactivity',subscribed.hash)
       }
 
       setProgress('activating')
@@ -237,7 +264,7 @@ export function ActivationDialog({
           {marketReady && preflight?.smartAccount && accountNeedsPreparation && <button className="ghost-button" onClick={() => void prepareSmartAccount()} disabled={busy}>
             {progress === 'preparing' && <LoaderCircle size={15} className="spin" />} Prepare account
           </button>}
-          <button className="primary-button" onClick={() => void activate()} disabled={busy || !preflight?.ready || progress === 'done'}>
+          <p>Activation authorizes automatic rollover within this asset and cadence. New pool approvals are limited to the computed next-round budget. Pause stops progression.</p><button className="primary-button" onClick={() => void activate()} disabled={busy || !preflight?.ready || progress === 'done'}>
           {busy && <LoaderCircle size={15} className="spin" />}{progressLabel[progress]}
           </button>
         </div>

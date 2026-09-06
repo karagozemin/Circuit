@@ -4,6 +4,7 @@ import { somniaShannon } from '@somnia-chain/markets-sdk/chains'
 import { createDreamDexExchange, SHANNON_DIAGNOSTIC_RPC_URL, SHANNON_FALLBACK_RPC_URL, SHANNON_RPC_URL } from './config'
 
 export interface TradingMarketSnapshot {
+  sdkReady?: boolean
   marketId: `0x${string}`
   marketAddress: `0x${string}`
   pool: `0x${string}`
@@ -31,6 +32,7 @@ export interface DiscoverMarketOptions {
   asset?: 'BTC' | 'ETH'
   intervalSec?: 900 | 3600
   minSecondsToExpiry?: number
+  afterExpiry?: number
   exchange?: SomniaMarkets
 }
 
@@ -42,10 +44,11 @@ export function isMarketEligible(
   return market.status === 1 && Number(market.expiry) - nowSec >= minSecondsToExpiry
 }
 
-export async function discoverTradingMarket({
+async function discoverViaSdk({
   asset = 'BTC',
   intervalSec = 900,
   minSecondsToExpiry = 120,
+  afterExpiry = 0,
   exchange = createDreamDexExchange(),
 }: DiscoverMarketOptions = {}): Promise<TradingMarketSnapshot> {
   const publicClient = createPublicClient({
@@ -61,7 +64,7 @@ export async function discoverTradingMarket({
 
   for (const indexed of indexedCandidates) {
     const onchain = await exchange.client.getMarketOnchain(indexed.marketId)
-    if (!isMarketEligible(onchain, nowSec, minSecondsToExpiry)) continue
+    if (!isMarketEligible(onchain, nowSec, minSecondsToExpiry) || Number(onchain.expiry) <= afterExpiry) continue
 
     const unified = Object.values(unifiedMarkets).find((market) => {
       const info = market.info as BinaryMarket | undefined
@@ -98,4 +101,18 @@ export async function discoverTradingMarket({
   }
 
   throw new Error(`No on-chain Trading ${asset} ${intervalSec / 60}m market satisfies the ${minSecondsToExpiry}s expiry buffer.`)
+}
+
+
+export async function discoverTradingMarket(options: DiscoverMarketOptions = {}): Promise<TradingMarketSnapshot> {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  try {
+    return await Promise.race([
+      discoverViaSdk(options),
+      new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error('SDK discovery deadline exceeded.')), 8000) }),
+    ])
+  } catch {
+    const { discoverFromChain } = await import('./chain-discovery')
+    return discoverFromChain(options)
+  } finally { if (timer) clearTimeout(timer) }
 }

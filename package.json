@@ -16,7 +16,11 @@
     "smart-account:deploy": "forge build && node --env-file=.env.local --import tsx scripts/deploy-smart-account.ts",
     "contracts:build": "forge build",
     "contracts:test": "forge test",
-    "contracts:deploy": "forge build && node --env-file=.env.local --import tsx scripts/deploy-circuit.ts"
+    "contracts:deploy": "forge build && node --env-file=.env.local --import tsx scripts/deploy-circuit.ts",
+    "keeper": "forge build && node --env-file=.env.local --import tsx scripts/keeper.ts",
+    "live:check": "node --env-file=.env.local --import tsx scripts/check-live.ts",
+    "test:keeper": "forge build && tsx scripts/test-keeper.ts",
+    "contracts:abi": "forge build && tsx scripts/generate-abi.ts"
   },
   "dependencies": {
     "@somnia-chain/markets-sdk": "^0.29.0",

@@ -3,7 +3,7 @@ import { createPublicClient, createWalletClient, fallback, http, isAddress, type
 import { privateKeyToAccount } from 'viem/accounts'
 import engineArtifact from '../contracts/out/CircuitEngine.sol/CircuitEngine.json'
 import handlerArtifact from '../contracts/out/CircuitReactivityHandler.sol/CircuitReactivityHandler.json'
-import { SHANNON_DIAGNOSTIC_RPC_URL, SHANNON_FALLBACK_RPC_URL, SHANNON_RPC_URL } from '../src/lib/dreamdex/config'
+import { DREAMDEX_CONTRACTS, SHANNON_DIAGNOSTIC_RPC_URL, SHANNON_FALLBACK_RPC_URL, SHANNON_RPC_URL } from '../src/lib/dreamdex/config'
 import { requirePrivateKey } from './private-key'
 
 const privateKey = requirePrivateKey(process.env.CIRCUIT_OPERATOR_PRIVATE_KEY)
@@ -26,7 +26,7 @@ if (balance === 0n) throw new Error(`Deployer ${account.address} has no STT for 
 const engineHash = await walletClient.deployContract({
   abi: engineArtifact.abi as Abi,
   bytecode: engineArtifact.bytecode.object as Hex,
-  args: [account.address, account.address],
+  args: [account.address, account.address, DREAMDEX_CONTRACTS.binaryModule],
 })
 const engineReceipt = await publicClient.waitForTransactionReceipt({ hash: engineHash })
 if (engineReceipt.status !== 'success' || !engineReceipt.contractAddress) throw new Error('CircuitEngine deployment reverted.')

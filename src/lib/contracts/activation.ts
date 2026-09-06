@@ -1,4 +1,5 @@
 import { SDK, SomniaReactivityPrecompileABI } from '@somnia-chain/reactivity'
+import { binaryModuleReadAbi } from '@somnia-chain/markets-sdk'
 import { somniaShannon } from '@somnia-chain/markets-sdk/chains'
 import {
   createPublicClient,
@@ -12,6 +13,8 @@ import {
   isAddress,
   parseEventLogs,
   parseGwei,
+  keccak256,
+  stringToHex,
   parseUnits,
   type Address,
   type Hash,
@@ -20,6 +23,7 @@ import {
 import type { StrategyManifest } from '../strategy'
 import type { InjectedProvider, WalletSnapshot } from '../wallet'
 import {
+  DREAMDEX_CONTRACTS,
   SHANNON_DIAGNOSTIC_RPC_URL,
   SHANNON_FALLBACK_RPC_URL,
   SHANNON_RPC_URL,
@@ -406,13 +410,22 @@ export async function createSubscriptionTransaction(
   account: Address,
   deployment: CircuitDeployment,
   market: TradingMarketSnapshot,
+  kind: 'fill' | 'resolution' | 'successor' = 'fill',
 ) {
   const client = clients(provider, account)
   const sdk = new SDK({ public: client.public, wallet: client.wallet })
+  let emitter = kind === 'fill' ? market.pool : market.marketAddress
+  let topic = kind === 'fill' ? ORDER_FILLED_TOPIC : keccak256(stringToHex('StatusChanged(uint8,uint8)'))
+  if (kind === 'successor') {
+    if (!DREAMDEX_CONTRACTS.binaryModule) throw new Error('dreamDEX module is not configured.')
+    const record = await client.public.readContract({address:DREAMDEX_CONTRACTS.binaryModule,abi:binaryModuleReadAbi,functionName:'markets',args:[market.marketId]})
+    emitter = record[7]
+    topic = keccak256(stringToHex('MarketCreated(bytes32,address,address,uint256,uint256,address,string,uint256,uint64,uint64,uint256,string,uint64)'))
+  }
   const hash = await sdk.subscribe({
     handlerContractAddress: deployment.handler,
-    filter: { eventTopics: [ORDER_FILLED_TOPIC], emitter: market.pool },
-    options: { priorityFeePerGas: parseGwei('2'), maxFeePerGas: parseGwei('20'), gasLimit: 2_000_000n },
+    filter: {eventTopics:[topic],emitter},
+    options: { priorityFeePerGas: parseGwei('2'), maxFeePerGas: parseGwei('20'), gasLimit: 10_000_000n },
   })
   if (hash instanceof Error) throw hash
   const receipt = await successfulReceipt(hash)
@@ -445,4 +458,12 @@ export async function strategyTransaction(
   })
   const receipt = await successfulReceipt(hash)
   return { hash, blockNumber: receipt.blockNumber }
+}
+
+
+export async function enableAutomaticRolloverTransaction(provider: InjectedProvider, account: Address, deployment: CircuitDeployment, strategyId: Hex): Promise<TransactionResult> {
+  const { wallet } = clients(provider,account)
+  const hash = await wallet.writeContract({address:deployment.engine,abi:circuitEngineAbi,functionName:'setAutomaticRollover',args:[strategyId,true]})
+  const receipt = await successfulReceipt(hash)
+  return {hash,blockNumber:receipt.blockNumber}
 }

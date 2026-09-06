@@ -10,6 +10,7 @@ interface Vm {
 }
 
 contract MockCircuitEngine is ICircuitEngine {
+    function handleResolution(bytes32, bytes32, bytes32) external { calls++; }
     uint256 public calls;
     uint256 public lastFillPrice;
     bytes32 public lastCallbackId;

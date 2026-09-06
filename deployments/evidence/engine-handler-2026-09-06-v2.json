@@ -1,0 +1,18 @@
+{
+  "chainId": 50312,
+  "admin": "0x8aeA55E869eab02A0a68D3172e85C5aeCEe8534D",
+  "engine": "0x4534f1b19fbf7a42df52b33309881cb4e359569a",
+  "handler": "0xceb971fdf1082e952dcbb41caa6d69eb592ddf4b",
+  "transactions": {
+    "engine": "0xe0e2e54e81df600ce738fed3bd49d24f974056da4849e82386f968db0ce2c4bc",
+    "handler": "0x689b752c4236af3305d589224c8f5744ecc8e7dbc21f8b2dbbabc257e6fca1d7",
+    "wiring": "0x2d45dfe840253964b5f0ecc027c18fdff525185300cb08c0a6bddc0c232ca1de",
+    "smartAccount": "0xff1b033791c7d984ae785e4a74b0686cfcccb17f98f716e7a0f981e677666853"
+  },
+  "next": [
+    "VITE_CIRCUIT_ENGINE_ADDRESS=0x4534f1b19fbf7a42df52b33309881cb4e359569a",
+    "VITE_CIRCUIT_HANDLER_ADDRESS=0xceb971fdf1082e952dcbb41caa6d69eb592ddf4b",
+    "npm run spike:operator -- --owner=0x8aeA55E869eab02A0a68D3172e85C5aeCEe8534D --operator=0x4534f1b19fbf7a42df52b33309881cb4e359569a"
+  ],
+  "smartAccount": "0xeb8bd09e0694c036c6def25d38a6dae96d68f345"
+}

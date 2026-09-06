@@ -59,8 +59,11 @@ contract CircuitSmartAccount {
             bytes4 selector;
             assembly { selector := calldataload(data.offset) }
             // Engine policy checks the pool, price, quantity and expiry. The
-            // account only accepts the direct binary placement entrypoint.
-            if (selector != bytes4(keccak256("placeBinaryOrder(uint8,uint256,uint256,uint64,uint8,uint8,address,uint96,uint64)"))) {
+            // account accepts placement and the Engine's exact-position redemption path.
+            if (selector != bytes4(keccak256("placeBinaryOrder(uint8,uint256,uint256,uint64,uint8,uint8,address,uint96,uint64)"))
+                && selector != bytes4(keccak256("approve(address,uint256,uint256)"))
+                && selector != bytes4(keccak256("approve(address,uint256)"))
+                && selector != bytes4(keccak256("redeem(uint32,bytes32,bytes32,uint8,uint256)"))) {
                 revert TargetNotAllowed();
             }
         }

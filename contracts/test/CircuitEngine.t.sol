@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.30;
 
+import {IBinaryModule} from "../src/interfaces/IBinaryLifecycle.sol";
 import {CircuitEngine} from "../src/CircuitEngine.sol";
 import {CircuitReactivityHandler} from "../src/CircuitReactivityHandler.sol";
 import {CircuitSmartAccount} from "../src/CircuitSmartAccount.sol";
@@ -14,6 +15,9 @@ interface EngineVm {
 
 contract MockCollateral is IERC20Balance {
     mapping(address => uint256) public balanceOf;
+
+    mapping(address => mapping(address => uint256)) public allowance;
+    function approve(address spender, uint256 amount) external returns (bool) { allowance[msg.sender][spender] = amount; return true; }
 
     function setBalance(address account, uint256 amount) external {
         balanceOf[account] = amount;
@@ -30,6 +34,9 @@ contract MockOutcome is IERC6909Balance {
     function balanceOf(address owner, uint256 id) external view returns (uint256) {
         return balances[owner][id];
     }
+
+    function approve(address, uint256, uint256) external pure returns (bool) { return true; }
+    function debit(address owner, uint256 id, uint256 amount) external { balances[owner][id] -= amount; }
 
     function credit(address owner, uint256 id, uint256 amount) external {
         balances[owner][id] += amount;
@@ -123,8 +130,37 @@ contract MockBinaryMarket is IBinaryMarket {
         expiry = expiry_;
     }
 
+    uint256 public winner = 1;
+    function isResolved() external view returns (bool) { return status == 4; }
+    function isVoided() external view returns (bool) { return status == 5; }
+    function setWinner(uint256 value) external { winner = value; }
+    function payoutNumerators() external view returns (uint256[] memory values) {
+        values = new uint256[](2);
+        if (status == 5) { values[0] = 5_000_000; values[1] = 5_000_000; }
+        else values[winner] = 10_000_000;
+    }
+    function setExpiry(uint64 value) external { expiry = value; }
     function setStatus(uint8 status_) external {
         status = status_;
+    }
+}
+
+contract MockBinaryModule is IBinaryModule {
+    MockBinaryMarket public market;
+    MockCollateral public collateral;
+    MockOutcome public outcome;
+    constructor(MockBinaryMarket m, MockCollateral c, MockOutcome o) { market = m; collateral = c; outcome = o; }
+    function markets(bytes32) external view returns (MarketRecord memory record) {
+        record.market = address(market); record.pool = market.pool(); record.collateral = address(collateral);
+        record.creator = address(this); record.outcomeSlotCount = 2; record.yesId = 1; record.noId = 2;
+        record.expiry = market.expiry(); record.tradingStart = record.expiry - 900;
+    }
+    function useMarket(MockBinaryMarket m) external { market = m; }
+    function redeem(uint32, bytes32, bytes32, uint8 side, uint256 amount) external {
+        require(market.status() == 4 || market.status() == 5, "unsettled");
+        outcome.debit(msg.sender, side + 1, amount);
+        uint256 proceeds = market.status() == 5 ? amount / 2 : market.winner() == side ? amount : 0;
+        collateral.setBalance(msg.sender, collateral.balanceOf(msg.sender) + proceeds);
     }
 }
 
@@ -133,6 +169,7 @@ contract CircuitEngineTest {
     bytes32 private constant MANIFEST_HASH = keccak256("manifest-v1");
     bytes32 private constant MARKET_ID = bytes32(uint256(123));
 
+    MockBinaryModule private module;
     CircuitEngine private engine;
     CircuitReactivityHandler private handler;
     MockCollateral private collateral;
@@ -148,7 +185,8 @@ contract CircuitEngineTest {
         pool = new MockBinaryPool(collateral, outcome);
         market =
             new MockBinaryMarket(address(pool), address(collateral), address(outcome), uint64(block.timestamp + 900));
-        engine = new CircuitEngine(address(this), address(this));
+        module = new MockBinaryModule(market, collateral, outcome);
+        engine = new CircuitEngine(address(this), address(this), address(module));
         handler = new CircuitReactivityHandler(address(this), address(engine));
         engine.setReactivityHandler(address(handler));
         pool.setApprovedContract(address(engine), true);
@@ -157,6 +195,9 @@ contract CircuitEngineTest {
         engine.bindMarket(
             strategyId, MARKET_ID, address(market), address(pool), address(collateral), address(outcome), 2
         );
+        CircuitSmartAccount account = new CircuitSmartAccount(address(this), address(engine));
+        collateral.setBalance(address(account), 100_000_000);
+        engine.setExecutionAccount(strategyId, address(account));
         engine.activateStrategy(strategyId);
     }
 
@@ -238,9 +279,10 @@ contract CircuitEngineTest {
 
     function testStopsAfterConfiguredConsecutiveLosses() public {
         _completeLoss(10);
-        engine.bindMarket(
-            strategyId, bytes32(uint256(124)), address(market), address(pool), address(collateral), address(outcome), 2
-        );
+        MockBinaryMarket next = new MockBinaryMarket(address(pool), address(collateral), address(outcome), uint64(block.timestamp + 1800));
+        module.useMarket(next);
+        engine.bindMarket(strategyId, bytes32(uint256(124)), address(next), address(pool), address(collateral), address(outcome), 2);
+        market = next;
         _completeLoss(20);
         (, CircuitEngine.StrategyRuntime memory runtime) = engine.getStrategy(strategyId);
         require(runtime.status == CircuitEngine.StrategyStatus.STOPPED, "loss policy did not stop");
@@ -262,6 +304,7 @@ contract CircuitEngineTest {
     }
 
     function testExecutionRequiresDreamDexProtocolApproval() public {
+        engine.setExecutionAccount(strategyId, address(0));
         pool.setApprovedContract(address(engine), false);
         _trigger(bytes32(uint256(41)));
         vm.expectRevert(MockBinaryPool.OnlyApprovedContracts.selector);
@@ -270,20 +313,23 @@ contract CircuitEngineTest {
 
     function testStopsAtMaximumRoundCount() public {
         handler.unbindMarket(address(pool));
+        handler.unbindMarket(address(market));
         CircuitEngine.StrategyConfig memory oneRound = _config();
         oneRound.maxRounds = 1;
         bytes32 oneRoundId = engine.createStrategy(keccak256("one-round"), oneRound);
         engine.bindMarket(
             oneRoundId, bytes32(uint256(500)), address(market), address(pool), address(collateral), address(outcome), 2
         );
+        CircuitSmartAccount account = new CircuitSmartAccount(address(this), address(engine));
+        collateral.setBalance(address(account), 100_000_000);
+        engine.setExecutionAccount(oneRoundId, address(account));
         engine.activateStrategy(oneRoundId);
         vm.prank(address(handler));
         engine.handleMarketFill(oneRoundId, 1, bytes32(uint256(500)), address(pool), 750_000, bytes32(uint256(501)));
         engine.executeReadyAction(oneRoundId, 745_000, 10_000_000);
+        market.setStatus(4);
         vm.prank(address(handler));
-        engine.handleResolution(
-            oneRoundId, bytes32(uint256(500)), CircuitEngine.RoundResult.WIN, 10_000_000, bytes32(uint256(502))
-        );
+        engine.handleResolution(oneRoundId, bytes32(uint256(500)), bytes32(uint256(502)));
 
         (, CircuitEngine.StrategyRuntime memory runtime) = engine.getStrategy(oneRoundId);
         require(runtime.status == CircuitEngine.StrategyStatus.STOPPED, "max rounds did not stop");
@@ -296,7 +342,7 @@ contract CircuitEngineTest {
     }
 
     function testVerifiedReactivityCallbackTriggersEngine() public {
-        CircuitEngine integratedEngine = new CircuitEngine(address(this), address(this));
+        CircuitEngine integratedEngine = new CircuitEngine(address(this), address(this), address(module));
         CircuitReactivityHandler integratedHandler =
             new CircuitReactivityHandler(address(this), address(integratedEngine));
         integratedEngine.setReactivityHandler(address(integratedHandler));
@@ -333,12 +379,193 @@ contract CircuitEngineTest {
         engine.handleMarketFill(strategyId, 1, MARKET_ID, address(pool), 750_000, bytes32(uint256(5)));
     }
 
+    function testPermissionlessSyncRedeemsActualWinAndIsIdempotent() public {
+        _trigger(bytes32(uint256(701)));
+        engine.executeReadyAction(strategyId, 745_000, 10_000_000);
+        (, CircuitEngine.StrategyRuntime memory beforeState) = engine.getStrategy(strategyId);
+        uint256 beforeBalance = collateral.balanceOf(beforeState.executionAccount);
+        market.setStatus(4);
+        vm.prank(address(0xCAFE));
+        require(engine.syncStrategy(strategyId, MARKET_ID), "sync failed");
+        (, CircuitEngine.StrategyRuntime memory afterState) = engine.getStrategy(strategyId);
+        require(collateral.balanceOf(beforeState.executionAccount) - beforeBalance == 10_000_000, "proceeds not owned by account");
+        require(afterState.nextOrderBudget == 5_000_000, "rollover not realized proceeds");
+        require(afterState.status == CircuitEngine.StrategyStatus.ROLLING, "not rolling");
+        require(!engine.syncStrategy(strategyId, MARKET_ID), "duplicate sync changed state");
+        require(outcome.balanceOf(beforeState.executionAccount, 2) == 0, "position not burned");
+    }
+
+    function testResolutionCallbackRedeemsAndReturnsToArmedSuccessor() public {
+        bytes32[] memory fillTopics = new bytes32[](3);
+        fillTopics[0] = handler.ORDER_FILLED_TOPIC();
+        fillTopics[1] = bytes32(uint256(702)); fillTopics[2] = bytes32(uint256(703));
+        vm.prank(address(0x0100));
+        handler.onEvent(address(pool), fillTopics, abi.encode(uint256(1),uint256(0),uint256(0),uint256(750_000)));
+        vm.prank(address(0xCAFE)); // The keeper holds no owner permission.
+        engine.executeReadyAction(strategyId, 745_000, 10_000_000);
+        market.setStatus(4);
+        bytes32[] memory topics = new bytes32[](3);
+        topics[0] = handler.STATUS_CHANGED_TOPIC(); topics[1] = bytes32(uint256(3)); topics[2] = bytes32(uint256(4));
+        vm.prank(address(0x0100));
+        handler.onEvent(address(market), topics, "");
+        vm.prank(address(0x0100));
+        handler.onEvent(address(market), topics, "");
+        MockBinaryMarket next = new MockBinaryMarket(address(pool), address(collateral), address(outcome), uint64(block.timestamp + 1800));
+        module.useMarket(next);
+        engine.bindMarket(strategyId, bytes32(uint256(999)), address(next), address(pool), address(collateral), address(outcome), 2);
+        (, CircuitEngine.StrategyRuntime memory state) = engine.getStrategy(strategyId);
+        require(state.round == 2 && state.status == CircuitEngine.StrategyStatus.ARMED, "successor not armed");
+        (,,,bool oldActive) = handler.bindings(address(market));
+        require(!oldActive, "stale resolution binding");
+    }
+
+    function testVoidRedeemsHalfAndPreservesLossCounter() public {
+        _completeLoss(710);
+        MockBinaryMarket next = new MockBinaryMarket(address(pool), address(collateral), address(outcome), uint64(block.timestamp + 1800));
+        module.useMarket(next);
+        engine.bindMarket(strategyId, bytes32(uint256(888)), address(next), address(pool), address(collateral), address(outcome), 2);
+        market = next;
+        _trigger(bytes32(uint256(713)));
+        engine.executeReadyAction(strategyId, 745_000, 10_000_000);
+        market.setStatus(5);
+        engine.syncStrategy(strategyId, bytes32(uint256(888)));
+        (, CircuitEngine.StrategyRuntime memory state) = engine.getStrategy(strategyId);
+        require(state.consecutiveLosses == 1, "void changed losses");
+        require(state.nextOrderBudget == 10_000_000, "void budget wrong");
+        require(collateral.balanceOf(state.executionAccount) == 100_000_000, "void refund missing");
+    }
+
+    function testUnsettledAndPausedCannotRedeemOrRoll() public {
+        _trigger(bytes32(uint256(720)));
+        engine.executeReadyAction(strategyId, 745_000, 10_000_000);
+        require(!engine.syncStrategy(strategyId, MARKET_ID), "unsettled advanced");
+        engine.pauseStrategy(strategyId);
+        market.setStatus(4);
+        require(!engine.syncStrategy(strategyId, MARKET_ID), "paused advanced");
+        engine.resumeStrategy(strategyId);
+        require(engine.syncStrategy(strategyId, MARKET_ID), "resume lost settlement");
+    }
+
+    function testNoFillAndExpiredUntriggeredWindowDoNotCountAsLoss() public {
+        pool.configure(0, 0, false);
+        _trigger(bytes32(uint256(730)));
+        engine.executeReadyAction(strategyId, 745_000, 10_000_000);
+        market.setWinner(0); market.setStatus(4);
+        engine.syncStrategy(strategyId, MARKET_ID);
+        (, CircuitEngine.StrategyRuntime memory state) = engine.getStrategy(strategyId);
+        require(state.consecutiveLosses == 0 && state.cumulativeCapitalUsed == 0, "no-fill counted as loss");
+        MockBinaryMarket next = new MockBinaryMarket(address(pool), address(collateral), address(outcome), uint64(block.timestamp + 1800));
+        module.useMarket(next);
+        engine.bindMarket(strategyId, bytes32(uint256(777)), address(next), address(pool), address(collateral), address(outcome), 2);
+        vm.warp(block.timestamp + 1801);
+        require(engine.syncStrategy(strategyId, bytes32(uint256(777))), "expired window stuck");
+    }
+
+    function testPartialFillRedeemsOnlyReceivedPosition() public {
+        pool.configure(500_000, 2_000_000, true);
+        _trigger(bytes32(uint256(739)));
+        engine.executeReadyAction(strategyId, 745_000, 10_000_000);
+        market.setStatus(4);
+        engine.syncStrategy(strategyId, MARKET_ID);
+        (, CircuitEngine.StrategyRuntime memory state) = engine.getStrategy(strategyId);
+        require(state.cumulativeCapitalUsed == 500_000, "partial spend overstated");
+        require(state.nextOrderBudget == 1_000_000, "partial proceeds overstated");
+    }
+
+    function testCannotSwapAccountWithOpenPosition() public {
+        _trigger(bytes32(uint256(740)));
+        engine.executeReadyAction(strategyId, 745_000, 10_000_000);
+        vm.expectRevert(CircuitEngine.InvalidState.selector);
+        engine.setExecutionAccount(strategyId, address(0));
+    }
+
+    function testRejectsUnregisteredMarketAndSameWindowSuccessor() public {
+        _completeLoss(750);
+        vm.expectRevert(CircuitEngine.InvalidMarketBinding.selector);
+        engine.bindMarket(strategyId, MARKET_ID, address(market), address(pool), address(collateral), address(outcome), 2);
+        vm.expectRevert(CircuitEngine.InvalidMarketBinding.selector);
+        engine.bindMarket(strategyId, bytes32(uint256(999)), address(0xCAFE), address(pool), address(collateral), address(outcome), 2);
+    }
+
+    function testPermissionlessAutomaticRolloverUsesVerifiedCreatorAndExactApproval() public {
+        engine.setAutomaticRollover(strategyId, true);
+        _completeLoss(800);
+        (MockBinaryMarket next, MockBinaryPool nextPool, bytes32 nextId) = _registerNext("BTC", 801);
+        vm.prank(address(0xCAFE));
+        engine.rollToNextMarket(strategyId, nextId);
+        (, CircuitEngine.StrategyRuntime memory state) = engine.getStrategy(strategyId);
+        require(state.status == CircuitEngine.StrategyStatus.ARMED && state.round == 2, "not automatically armed");
+        require(state.currentMarket == address(next), "wrong successor");
+        require(collateral.allowance(state.executionAccount, address(nextPool)) == state.nextOrderBudget, "approval exceeded round budget");
+        require(collateral.allowance(state.executionAccount, address(pool)) == 0, "old pool allowance retained");
+        CircuitSmartAccount(payable(state.executionAccount)).execute(address(collateral), 0,
+            abi.encodeWithSignature("approve(address,uint256)", address(nextPool), 0));
+        vm.expectRevert(CircuitEngine.InvalidState.selector);
+        engine.rollToNextMarket(strategyId, nextId);
+        require(collateral.allowance(state.executionAccount, address(nextPool)) == 0, "revoked allowance restored");
+    }
+
+    function testAutomaticRolloverNeedsExplicitConsentAndRespectsRevocationAndPause() public {
+        _completeLoss(810);
+        (,,bytes32 nextId) = _registerNext("BTC", 811);
+        vm.expectRevert(CircuitEngine.InvalidState.selector);
+        engine.rollToNextMarket(strategyId, nextId);
+        engine.setAutomaticRollover(strategyId, true);
+        engine.setAutomaticRollover(strategyId, false);
+        vm.expectRevert(CircuitEngine.InvalidState.selector);
+        engine.rollToNextMarket(strategyId, nextId);
+        engine.setAutomaticRollover(strategyId, true);
+        engine.pauseStrategy(strategyId);
+        vm.expectRevert(CircuitEngine.InvalidState.selector);
+        engine.rollToNextMarket(strategyId, nextId);
+        engine.resumeStrategy(strategyId);
+        engine.rollToNextMarket(strategyId, nextId);
+    }
+
+    function testAutomaticRolloverRejectsUnverifiedMarketAndWrongAsset() public {
+        engine.setAutomaticRollover(strategyId, true);
+        _completeLoss(820);
+        vm.expectRevert(CircuitEngine.InvalidMarketBinding.selector);
+        engine.rollToNextMarket(strategyId, bytes32(uint256(821)));
+        (,,bytes32 nextId) = _registerNext("ETH", 821);
+        vm.expectRevert(CircuitEngine.InvalidMarketBinding.selector);
+        engine.rollToNextMarket(strategyId, nextId);
+    }
+
+    function testCreatorCallbackCannotBeSpoofed() public {
+        bytes32[] memory topics = new bytes32[](4);
+        topics[0] = handler.MARKET_CREATED_TOPIC(); topics[1] = bytes32(uint256(830));
+        topics[2] = bytes32(uint256(uint160(address(market)))); topics[3] = bytes32(uint256(uint160(address(pool))));
+        bytes memory data = abi.encode(uint256(1),uint256(2),address(collateral),"BTC",uint256(0),
+            uint64(market.expiry()-900),market.expiry(),uint256(0),"BTC test",uint64(900));
+        vm.expectRevert(bytes4(keccak256("OnlyReactivityPrecompile()")));
+        handler.onEvent(address(module), topics, data);
+        vm.prank(address(0x0100));
+        vm.expectRevert(CircuitReactivityHandler.UnboundEmitter.selector);
+        handler.onEvent(address(0xBAD), topics, data);
+    }
+
+    function _registerNext(string memory asset, uint256 seed) private returns (MockBinaryMarket next, MockBinaryPool nextPool, bytes32 nextId) {
+        nextPool = new MockBinaryPool(collateral, outcome);
+        next = new MockBinaryMarket(address(nextPool), address(collateral), address(outcome), uint64(block.timestamp + 1800));
+        module.useMarket(next);
+        nextId = bytes32(seed);
+        bytes32[] memory topics = new bytes32[](4);
+        topics[0] = handler.MARKET_CREATED_TOPIC(); topics[1] = nextId;
+        topics[2] = bytes32(uint256(uint160(address(next)))); topics[3] = bytes32(uint256(uint160(address(nextPool))));
+        bytes memory data = abi.encode(uint256(1),uint256(2),address(collateral),asset,uint256(0),
+            uint64(next.expiry()-900),next.expiry(),uint256(0),"test window",uint64(900));
+        vm.prank(address(0x0100)); handler.onEvent(address(module), topics, data);
+    }
+
     function _completeLoss(uint256 seed) private {
         _trigger(bytes32(seed));
         engine.executeReadyAction(strategyId, 745_000, 10_000_000);
         bytes32 marketId = engineRoundMarket();
+        market.setWinner(0);
+        market.setStatus(4);
         vm.prank(address(handler));
-        engine.handleResolution(strategyId, marketId, CircuitEngine.RoundResult.LOSS, 0, bytes32(seed + 1));
+        engine.handleResolution(strategyId, marketId, bytes32(seed + 1));
     }
 
     function engineRoundMarket() private view returns (bytes32) {

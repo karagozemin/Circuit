@@ -1,5 +1,5 @@
 import { keccak256, parseUnits, stringToHex } from 'viem'
-import { canonicalManifest, type StrategyManifest } from '../strategy'
+import { canonicalManifest, validateManifest, type StrategyManifest } from '../strategy'
 
 export const P0_PRICE_DECIMALS = 6
 export const P0_COLLATERAL_DECIMALS = 6
@@ -24,6 +24,8 @@ export function manifestHash(manifest: StrategyManifest) {
 }
 
 export function manifestToEngineConfig(manifest: StrategyManifest): EngineStrategyConfig {
+  const issues = validateManifest(manifest)
+  if (issues.length) throw new Error(issues.map(issue => issue.message).join(" "))
   return {
     assetId: manifest.series.asset === 'BTC' ? 0 : 1,
     intervalSec: manifest.series.intervalSec,
@@ -41,6 +43,7 @@ export function manifestToEngineConfig(manifest: StrategyManifest): EngineStrate
 }
 
 export const circuitEngineAbi = [
+  { type: 'function', name: 'setAutomaticRollover', stateMutability: 'nonpayable', inputs: [{name:'strategyId',type:'bytes32'},{name:'enabled',type:'bool'}],outputs:[] },
   {
     type: 'event',
     name: 'StrategyCreated',
