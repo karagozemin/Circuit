@@ -95,6 +95,7 @@ try {
  if(rolled[1].status!==2 || rolled[1].round!==2 || rolled[1].currentMarketId!==nextId)throw new Error('Non-owner keeper did not automatically arm the verified successor')
  const allowance=await client.readContract({...collateral,functionName:'allowance',args:[account.address,nextPool.address]})
  if(allowance!==5_000_000n)throw new Error('Automatic approval exceeded computed rollover budget')
+ if(transcript.some(output=>output.includes('AUTOMATION_PAUSED') || output.includes('\"kind\":\"error\"')))throw new Error('Keeper integration encountered a subscription or execution error')
  await writeFile('deployments/evidence/local-keeper-integration.txt' ,'LOCAL ANVIL + MOCK VENUE ONLY. No live Reactivity or live market resolution claim.\n'+transcript.join('\n'))
  console.log('PASS: separate keeper signer executed IOC, restarted, redeemed, enforced owner consent, then automatically subscribed/approved/armed a verified successor with exact budget.')
 } finally {server.kill('SIGTERM')}

@@ -10,7 +10,7 @@ Circuit compiles a visual or natural-language strategy into a deterministic mani
 
 ## Current Status
 
-The lifecycle implementation and current verification limits are tracked in [acceptance evidence](docs/ACCEPTANCE.md). The complete live PRD Definition of Done is still open. See [keeper operations](docs/AUTOMATION.md) for event-driven execution, settlement sync and owner-run rollover.
+A real Shannon callback → automatic order → fill → resolution/redeem → successor rollover completed on 6 September 2026. See the [live demo and receipts](docs/LIVE_DEMO.md), [acceptance evidence and remaining PRD checks](docs/ACCEPTANCE.md), and [keeper operations](docs/AUTOMATION.md). The demo strategy is paused after arming round 2.
 
 
 The repository contains:
@@ -60,7 +60,7 @@ Then restart Vite. The frontend activation review uses the public addresses only
 
 `smart-account:deploy` creates one account owned by the deployer address and restricted to the deployed Engine. Copy its `VITE_CIRCUIT_SMART_ACCOUNT_ADDRESS` output into `.env.local`, restart Vite, connect that owner wallet, choose an eligible live market, and use `Prepare account` in the activation review. Circuit then requests only the missing tUSDC funding and current-pool approval before activation.
 
-The current Shannon deployment and receipt references are recorded in [`deployments/shannon.json`](deployments/shannon.json). The linked smart-account path does not require dreamDEX delegated-operator allowlisting. Current subscription IDs, funding/approval receipts and explicit missing live callback/settlement evidence are recorded there.
+The current Shannon deployment and receipt references are recorded in [`deployments/shannon.json`](deployments/shannon.json). The linked smart-account path does not require dreamDEX delegated-operator allowlisting. Current subscription IDs, funding/approval receipts and independently verified live callback, order, settlement and rollover evidence are recorded there.
 
 ## Verification
 

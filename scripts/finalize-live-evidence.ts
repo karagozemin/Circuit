@@ -50,6 +50,15 @@ for(const [key,value] of Object.entries(subscriptions)){
 const settlementSource=events.RoundResolved.transaction.to?.toLowerCase()===proof.handler.toLowerCase()?'reactivity callback':'permissionless sync backstop'
 const audit={verifiedAt:new Date().toISOString(),network:'Somnia Shannon Testnet',chainId:50312,complete:true,strategyId:proof.strategyId,events,settlementSource,config,runtime,balance,oldAllowance,nextAllowance,subscriptions:subscriptionEvidence}
 const stringify=(value:unknown)=>JSON.stringify(value,(_,v)=>typeof v==='bigint'?v.toString():v,2)+'\n'
+for(const [name,transaction] of Object.entries(proof.transactions)){
+ const receipt=await client.getTransactionReceipt({hash:(transaction as {hash:Hex}).hash})
+ if(receipt.status!=='success')throw new Error(`Recorded cleanup or preparation transaction failed: ${name}`)
+}
+proof.runtimeAtSuccessor ??= proof.runtime
+proof.runtime=runtime
+proof.finalVerifiedAt=audit.verifiedAt
+if(proof.error){proof.recoveredErrors=[...(proof.recoveredErrors??[]),{message:proof.error,restartedAt:proof.restartedAt}];delete proof.error}
+await writeFile(`${directory}/proof.json`,stringify(proof))
 await writeFile(`${directory}/audit.json`,stringify(audit))
 const deployment=JSON.parse(await readFile('deployments/shannon.json','utf8'))
 if(deployment.engine.toLowerCase()!==proof.engine.toLowerCase())throw new Error('Public deployment is stale; record the correct deployment before finalizing.')

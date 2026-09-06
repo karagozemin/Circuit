@@ -881,6 +881,28 @@
   "runtime": {
     "owner": "0x8aeA55E869eab02A0a68D3172e85C5aeCEe8534D",
     "manifestHash": "0xc33756b0a4b0308c1ac76e921fac05a788fcf701a6fee40d7e51d8d3a0ff24e0",
+    "status": 7,
+    "pausedFrom": 2,
+    "currentMarketId": "0x000000000000000000000000000000000000000000000000000000000001552b",
+    "currentMarket": "0xc72a3206dc4eFCb3FEA5e3B1f492B9F83C2FE48a",
+    "currentPool": "0xB5d7067BE5F2A41c97FBed92B60Fe637fF98AAf0",
+    "collateral": "0x70a86D8842FB63C4Ad2b7cdddF530eBf1BB25d8E",
+    "outcomeToken": "0xB52c5934113Af5c0Bb20eb3C72290C8215f755b9",
+    "outcomeTokenId": "4902395156816626862554894461121724523937993426690405981304464408055808",
+    "round": 2,
+    "consecutiveLosses": 1,
+    "cumulativeCapitalUsed": "1000000",
+    "currentPositionSize": "0",
+    "nextOrderBudget": "1000000",
+    "triggerFillPrice": "0",
+    "executionAccount": "0xEB8bD09e0694c036c6deF25d38A6DAE96D68f345"
+  },
+  "observedAt": "2026-09-06T20:00:08.190Z",
+  "restartedAt": "2026-09-06T19:39:12.165Z",
+  "completedAt": "2026-09-06T20:00:08.193Z",
+  "runtimeAtSuccessor": {
+    "owner": "0x8aeA55E869eab02A0a68D3172e85C5aeCEe8534D",
+    "manifestHash": "0xc33756b0a4b0308c1ac76e921fac05a788fcf701a6fee40d7e51d8d3a0ff24e0",
     "status": 2,
     "pausedFrom": 0,
     "currentMarketId": "0x000000000000000000000000000000000000000000000000000000000001552b",
@@ -897,8 +919,11 @@
     "triggerFillPrice": "0",
     "executionAccount": "0xEB8bD09e0694c036c6deF25d38A6DAE96D68f345"
   },
-  "observedAt": "2026-09-06T20:00:08.190Z",
-  "error": "Cannot read properties of undefined (reading 'exitCode')",
-  "restartedAt": "2026-09-06T19:39:12.165Z",
-  "completedAt": "2026-09-06T20:00:08.193Z"
+  "finalVerifiedAt": "2026-09-06T20:25:27.422Z",
+  "recoveredErrors": [
+    {
+      "message": "Cannot read properties of undefined (reading 'exitCode')",
+      "restartedAt": "2026-09-06T19:39:12.165Z"
+    }
+  ]
 }

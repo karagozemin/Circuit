@@ -1,7 +1,8 @@
 import { normalizeSubscriptionInfo } from './subscription-info'
 import { SDK } from '@somnia-chain/reactivity'
 import { somniaShannon } from '@somnia-chain/markets-sdk/chains'
-import { createPublicClient, fallback, http, parseAbi, type Hex, type Address } from 'viem'
+import { createPublicClient, createWalletClient, custom, fallback, http, parseAbi, type Hex, type Address } from 'viem'
+import type { InjectedProvider } from '../wallet'
 import { SHANNON_RPC_URL, SHANNON_FALLBACK_RPC_URL, SHANNON_DIAGNOSTIC_RPC_URL } from '../dreamdex/config'
 import { lifecycleAbi } from './lifecycle-abi'
 import { REACTIVITY_MIN_BALANCE } from './activation'
@@ -37,4 +38,15 @@ export async function readExecutionHealth(runtime:{status:number;collateral:Addr
   if(allowance<runtime.nextOrderBudget)return 'EXECUTION BLOCKED · current pool allowance is revoked or below the next-round budget.'
   if(balance<runtime.nextOrderBudget)return 'EXECUTION BLOCKED · fund the smart account for its approved next-round budget.'
   return 'Current pool allowance and smart-account funding verified.'
+}
+
+export async function syncStrategyTransaction(provider:InjectedProvider,account:Address,engine:Address,id:Hex) {
+  const {runtime}=await readStrategyState(engine,id)
+  const simulation=await client.simulateContract({address:engine,abi:lifecycleAbi,functionName:'syncStrategy',args:[id,runtime.currentMarketId],account})
+  if(!simulation.result)return
+  const wallet=createWalletClient({account,chain:somniaShannon,transport:custom(provider)})
+  const hash=await wallet.writeContract(simulation.request)
+  const receipt=await client.waitForTransactionReceipt({hash})
+  if(receipt.status!=='success')throw new Error(`Sync reverted: ${hash}`)
+  return {hash,blockNumber:receipt.blockNumber}
 }

@@ -31,103 +31,106 @@
   },
   "preparation": {
     "strategyId": "0x20844a8dbeb64ffcdcfaa1d1934b2228358f0cd515e1ec1ed732fc93a88f67f1",
-    "status": "Activated; initial funding snapshot below. Current lifecycle is tracked separately.",
-    "marketId": "0x0000000000000000000000000000000000000000000000000000000000015497",
-    "smartAccountBalance": "2000000",
+    "status": "PAUSED after verified round-2 successor",
+    "marketId": "0x000000000000000000000000000000000000000000000000000000000001552b",
+    "smartAccountBalance": "1000000",
     "allowance": "1000000",
-    "allowanceSpender": "0x66A5890DB152dB5f236D6FD21D880E4fB1097e89",
+    "allowanceSpender": "0xB5d7067BE5F2A41c97FBed92B60Fe637fF98AAf0",
     "collateral": "0x70a86D8842FB63C4Ad2b7cdddF530eBf1BB25d8E",
     "collateralDecimals": 6,
     "subscriptions": [
       {
-        "kind": "fill",
+        "key": "0x66a5890db152db5f236d6fd21d880e4fb1097e89:0xc87f4223e9e7c4e4f39f9b34fc9d64d78cdb95d9035b3748cbde59521261a399",
         "id": "16525481",
         "hash": "0xc202082ef730631edff11d9369c9cd8d29f4943fbeb0ee1a36fd912049bd960f",
-        "blockNumber": "481500337",
-        "emitter": "0x66A5890DB152dB5f236D6FD21D880E4fB1097e89",
-        "topic": "0xc87f4223e9e7c4e4f39f9b34fc9d64d78cdb95d9035b3748cbde59521261a399",
-        "info": [
-          {
+        "info": {
+          "owner": "0x8aeA55E869eab02A0a68D3172e85C5aeCEe8534D",
+          "subscriptionData": {
+            "handlerContractAddress": "0xcEB971fdf1082E952DCBb41cAA6D69EB592dDf4b",
+            "emitter": "0x66A5890DB152dB5f236D6FD21D880E4fB1097e89",
             "eventTopics": [
               "0xc87f4223e9e7c4e4f39f9b34fc9d64d78cdb95d9035b3748cbde59521261a399",
               "0x0000000000000000000000000000000000000000000000000000000000000000",
               "0x0000000000000000000000000000000000000000000000000000000000000000",
               "0x0000000000000000000000000000000000000000000000000000000000000000"
-            ],
-            "origin": "0x0000000000000000000000000000000000000000",
-            "caller": "0x0000000000000000000000000000000000000000",
-            "emitter": "0x66A5890DB152dB5f236D6FD21D880E4fB1097e89",
-            "handlerContractAddress": "0xcEB971fdf1082E952DCBb41cAA6D69EB592dDf4b",
-            "handlerFunctionSelector": "0x53edf33d",
-            "priorityFeePerGas": "2000000000",
-            "maxFeePerGas": "20000000000",
-            "gasLimit": "10000000",
-            "isGuaranteed": false,
-            "isCoalesced": false
-          },
-          "0x8aeA55E869eab02A0a68D3172e85C5aeCEe8534D"
-        ]
+            ]
+          }
+        }
       },
       {
-        "kind": "resolution",
+        "key": "0x5263b80ba806631f95992e4a9e843a30b6bb7143:0xe1377aa21d49fa10bb9ece6a0cd4f75597a90a80c3750f7f7674967f49ab9a62",
         "id": "16525483",
         "hash": "0x9b87387e6b60de577fea8b97f7a38c306a4d8e25f4401c3941ff8ef4fc65d3b4",
-        "blockNumber": "481500348",
-        "emitter": "0x5263B80bA806631f95992e4A9E843a30B6BB7143",
-        "topic": "0xe1377aa21d49fa10bb9ece6a0cd4f75597a90a80c3750f7f7674967f49ab9a62",
-        "info": [
-          {
+        "info": {
+          "owner": "0x8aeA55E869eab02A0a68D3172e85C5aeCEe8534D",
+          "subscriptionData": {
+            "handlerContractAddress": "0xcEB971fdf1082E952DCBb41cAA6D69EB592dDf4b",
+            "emitter": "0x5263B80bA806631f95992e4A9E843a30B6BB7143",
             "eventTopics": [
               "0xe1377aa21d49fa10bb9ece6a0cd4f75597a90a80c3750f7f7674967f49ab9a62",
               "0x0000000000000000000000000000000000000000000000000000000000000000",
               "0x0000000000000000000000000000000000000000000000000000000000000000",
               "0x0000000000000000000000000000000000000000000000000000000000000000"
-            ],
-            "origin": "0x0000000000000000000000000000000000000000",
-            "caller": "0x0000000000000000000000000000000000000000",
-            "emitter": "0x5263B80bA806631f95992e4A9E843a30B6BB7143",
-            "handlerContractAddress": "0xcEB971fdf1082E952DCBb41cAA6D69EB592dDf4b",
-            "handlerFunctionSelector": "0x53edf33d",
-            "priorityFeePerGas": "2000000000",
-            "maxFeePerGas": "20000000000",
-            "gasLimit": "10000000",
-            "isGuaranteed": false,
-            "isCoalesced": false
-          },
-          "0x8aeA55E869eab02A0a68D3172e85C5aeCEe8534D"
-        ]
+            ]
+          }
+        }
       },
       {
-        "kind": "successor",
+        "key": "0x94d963b6670ab96e78c8d0c46ca35d196d606efe:0xcef65022605efd3d0e3c05c0a1b84d7ba9dfa8252f58a4f65867eb1ea3f6c300",
         "id": "16525486",
         "hash": "0x13b4d7dce9ef4bbac6255f407114bda872f5094d920a5b15c7ddfeeb55c6c6ea",
-        "blockNumber": "481500359",
-        "emitter": "0x94D963B6670AB96E78C8d0C46ca35D196d606EFE",
-        "topic": "0xcef65022605efd3d0e3c05c0a1b84d7ba9dfa8252f58a4f65867eb1ea3f6c300",
-        "info": [
-          {
+        "info": {
+          "owner": "0x8aeA55E869eab02A0a68D3172e85C5aeCEe8534D",
+          "subscriptionData": {
+            "handlerContractAddress": "0xcEB971fdf1082E952DCBb41cAA6D69EB592dDf4b",
+            "emitter": "0x94D963B6670AB96E78C8d0C46ca35D196d606EFE",
             "eventTopics": [
               "0xcef65022605efd3d0e3c05c0a1b84d7ba9dfa8252f58a4f65867eb1ea3f6c300",
               "0x0000000000000000000000000000000000000000000000000000000000000000",
               "0x0000000000000000000000000000000000000000000000000000000000000000",
               "0x0000000000000000000000000000000000000000000000000000000000000000"
-            ],
-            "origin": "0x0000000000000000000000000000000000000000",
-            "caller": "0x0000000000000000000000000000000000000000",
-            "emitter": "0x94D963B6670AB96E78C8d0C46ca35D196d606EFE",
+            ]
+          }
+        }
+      },
+      {
+        "key": "0xb5d7067be5f2a41c97fbed92b60fe637ff98aaf0:0xc87f4223e9e7c4e4f39f9b34fc9d64d78cdb95d9035b3748cbde59521261a399",
+        "id": "16530162",
+        "hash": "0x917da28ed7923cfddfc82511fa8505f529acd7109b79b8ce1c5855d1fb2c0573",
+        "info": {
+          "owner": "0x8aeA55E869eab02A0a68D3172e85C5aeCEe8534D",
+          "subscriptionData": {
             "handlerContractAddress": "0xcEB971fdf1082E952DCBb41cAA6D69EB592dDf4b",
-            "handlerFunctionSelector": "0x53edf33d",
-            "priorityFeePerGas": "2000000000",
-            "maxFeePerGas": "20000000000",
-            "gasLimit": "10000000",
-            "isGuaranteed": false,
-            "isCoalesced": false
-          },
-          "0x8aeA55E869eab02A0a68D3172e85C5aeCEe8534D"
-        ]
+            "emitter": "0xB5d7067BE5F2A41c97FBed92B60Fe637fF98AAf0",
+            "eventTopics": [
+              "0xc87f4223e9e7c4e4f39f9b34fc9d64d78cdb95d9035b3748cbde59521261a399",
+              "0x0000000000000000000000000000000000000000000000000000000000000000",
+              "0x0000000000000000000000000000000000000000000000000000000000000000",
+              "0x0000000000000000000000000000000000000000000000000000000000000000"
+            ]
+          }
+        }
+      },
+      {
+        "key": "0xc72a3206dc4efcb3fea5e3b1f492b9f83c2fe48a:0xe1377aa21d49fa10bb9ece6a0cd4f75597a90a80c3750f7f7674967f49ab9a62",
+        "id": "16530167",
+        "hash": "0x22ee7d8a705f5da185afb3f8b42632d0b553f359fd2dfd6b01ac2acfd3145401",
+        "info": {
+          "owner": "0x8aeA55E869eab02A0a68D3172e85C5aeCEe8534D",
+          "subscriptionData": {
+            "handlerContractAddress": "0xcEB971fdf1082E952DCBb41cAA6D69EB592dDf4b",
+            "emitter": "0xc72a3206dc4eFCb3FEA5e3B1f492B9F83C2FE48a",
+            "eventTopics": [
+              "0xe1377aa21d49fa10bb9ece6a0cd4f75597a90a80c3750f7f7674967f49ab9a62",
+              "0x0000000000000000000000000000000000000000000000000000000000000000",
+              "0x0000000000000000000000000000000000000000000000000000000000000000",
+              "0x0000000000000000000000000000000000000000000000000000000000000000"
+            ]
+          }
+        }
       }
     ],
-    "verifiedAt": "2026-09-06T19:33:13.322Z",
+    "verifiedAt": "2026-09-06T20:25:27.422Z",
     "evidence": "deployments/evidence/live-preparation-v2.json",
     "manifest": {
       "version": 1,
@@ -168,14 +171,16 @@
     "revisionEvidence": "deployments/evidence/live-demo/fixture-revision.json"
   },
   "liveLifecycle": {
-    "complete": false,
+    "complete": true,
+    "strategyId": "0x20844a8dbeb64ffcdcfaa1d1934b2228358f0cd515e1ec1ed732fc93a88f67f1",
     "callbackEvidence": "0xfe816d6588142202de86143f2c23a00411b51c768df2d81d2a25ff52a67a37e4",
     "orderEvidence": "0xb9561543c7839b00691ffd62e488a7e497bbefd56edda18f721ec20d37c15d91",
-    "resolutionEvidence": null,
-    "reason": "Actual callback and automatic 1 tUSDC order filled 50 UP shares; awaiting live resolution and successor.",
-    "strategyId": "0x20844a8dbeb64ffcdcfaa1d1934b2228358f0cd515e1ec1ed732fc93a88f67f1",
-    "stage": "waiting for real market resolution",
-    "proof": "deployments/evidence/live-demo/proof.json"
+    "resolutionEvidence": "0xf606387aeda808c1906132412b62d21d9d6f767a385259923c6e3a0e6401e776",
+    "rolloverEvidence": "0xec259cfe0e4cdc5d9d8936e5e6c040fd391c431786932d757a6069621bcf078d",
+    "settlementSource": "reactivity callback",
+    "proof": "deployments/evidence/live-demo/proof.json",
+    "audit": "deployments/evidence/live-demo/audit.json",
+    "verifiedAt": "2026-09-06T20:25:27.422Z"
   },
   "dreamDexBinaryPoolAuthorization": "not required for the linked smart-account direct order path",
   "previousDeployments": [
@@ -212,7 +217,7 @@
       },
       "preparation": {
         "strategyId": "0x6f448fa61ef7c5fef6022d47a1bf01265d9cd337c956e163a4a09acd3e38cb98",
-        "status": "VALIDATED \u2014 not activated",
+        "status": "VALIDATED — not activated",
         "marketId": "0x0000000000000000000000000000000000000000000000000000000000015405",
         "smartAccountBalance": "2000000",
         "allowance": "1000000",
