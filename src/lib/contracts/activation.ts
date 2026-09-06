@@ -11,6 +11,7 @@ import {
   isAddress,
   parseEventLogs,
   parseGwei,
+  parseUnits,
   type Address,
   type Hash,
   type Hex,
@@ -33,8 +34,13 @@ export interface CircuitDeployment {
   handler: Address
 }
 
+export const circuitSmartAccountAbi = [
+  { type: 'function', name: 'owner', stateMutability: 'view', inputs: [], outputs: [{ name: '', type: 'address' }] },
+  { type: 'function', name: 'executor', stateMutability: 'view', inputs: [], outputs: [{ name: '', type: 'address' }] },
+] as const
+
 export type ReadinessCheck = {
-  id: 'deployment' | 'wiring' | 'market' | 'balance' | 'sdk'
+  id: 'deployment' | 'wiring' | 'market' | 'balance' | 'sdk' | 'smart-account'
   label: string
   state: 'pass' | 'fail' | 'checking'
   detail: string
@@ -43,6 +49,7 @@ export type ReadinessCheck = {
 export interface ActivationPreflight {
   ready: boolean
   deployment?: CircuitDeployment
+  smartAccount?: Address
   checks: ReadinessCheck[]
 }
 
@@ -55,6 +62,10 @@ const viteEnv = (import.meta as ImportMeta & { env?: Record<string, string | und
 const binaryMarketReadAbi = [
   { type: 'function', name: 'status', stateMutability: 'view', inputs: [], outputs: [{ name: '', type: 'uint8' }] },
   { type: 'function', name: 'expiry', stateMutability: 'view', inputs: [], outputs: [{ name: '', type: 'uint64' }] },
+] as const
+const collateralReadAbi = [
+  { type: 'function', name: 'balanceOf', stateMutability: 'view', inputs: [{ name: 'account', type: 'address' }], outputs: [{ name: '', type: 'uint256' }] },
+  { type: 'function', name: 'allowance', stateMutability: 'view', inputs: [{ name: 'owner', type: 'address' }, { name: 'spender', type: 'address' }], outputs: [{ name: '', type: 'uint256' }] },
 ] as const
 
 export function parseDeployment(engineValue?: string, handlerValue?: string): CircuitDeployment | undefined {
@@ -77,6 +88,11 @@ function publicClient() {
   })
 }
 
+function configuredSmartAccount() {
+  const value = viteEnv.VITE_CIRCUIT_SMART_ACCOUNT_ADDRESS
+  return value && isAddress(value) ? getAddress(value) : undefined
+}
+
 function clients(provider: InjectedProvider, account: Address) {
   return {
     public: publicClient(),
@@ -93,6 +109,7 @@ async function successfulReceipt(hash: Hash) {
 export async function inspectActivation(
   wallet: WalletSnapshot,
   market: TradingMarketSnapshot,
+  manifest: StrategyManifest,
   minSecondsToExpiry = 120,
   requiresSubscriptionBalance = true,
 ): Promise<ActivationPreflight> {
@@ -165,6 +182,40 @@ export async function inspectActivation(
       : funded ? 'Wallet meets the 32 STT subscription minimum.' : 'Wallet needs at least 32 STT for Reactivity.',
   })
 
+  const smartAccount = configuredSmartAccount()
+  if (!smartAccount) {
+    checks.push({
+      id: 'smart-account',
+      label: 'User-owned smart account',
+      state: 'fail',
+      detail: 'Deploy CircuitSmartAccount(owner, engine), fund it, then set VITE_CIRCUIT_SMART_ACCOUNT_ADDRESS.',
+    })
+  } else {
+    const [accountCode, accountOwner, accountExecutor, accountBalance, accountAllowance] = await Promise.all([
+      client.getCode({ address: smartAccount }),
+      client.readContract({ address: smartAccount, abi: circuitSmartAccountAbi, functionName: 'owner' }),
+      client.readContract({ address: smartAccount, abi: circuitSmartAccountAbi, functionName: 'executor' }),
+      client.readContract({ address: market.collateral, abi: collateralReadAbi, functionName: 'balanceOf', args: [smartAccount] }),
+      client.readContract({ address: market.collateral, abi: collateralReadAbi, functionName: 'allowance', args: [smartAccount, market.pool] }),
+    ])
+    const requiredCollateral = parseUnits(manifest.action.maxCollateral, market.collateralDecimals)
+    const accountReady = Boolean(accountCode && accountCode !== '0x')
+      && accountOwner.toLowerCase() === wallet.address.toLowerCase()
+      && accountExecutor.toLowerCase() === deployment.engine.toLowerCase()
+      && accountBalance >= requiredCollateral
+      && accountAllowance >= requiredCollateral
+    checks.push({
+      id: 'smart-account',
+      label: 'User-owned smart account',
+      state: accountReady ? 'pass' : 'fail',
+      detail: accountReady
+        ? `${smartAccount.slice(0, 10)}... is owned by the connected wallet, funded, approved for the current pool, and restricted to CircuitEngine.`
+        : accountOwner.toLowerCase() !== wallet.address.toLowerCase() || accountExecutor.toLowerCase() !== deployment.engine.toLowerCase()
+          ? 'Smart account owner/executor does not match this wallet and Engine deployment.'
+          : `Smart account needs at least ${manifest.action.maxCollateral} collateral balance and allowance to the current pool.`,
+    })
+  }
+
   checks.push({
     id: 'sdk',
     label: 'Market SDK order path',
@@ -172,7 +223,7 @@ export async function inspectActivation(
     detail: 'Direct wallet signer will call BinaryPool.placeBinaryOrder through @somnia-chain/markets-sdk. Engine allowlisting is not required for this path.',
   })
 
-  return { ready: checks.every((check) => check.state === 'pass'), deployment, checks }
+  return { ready: checks.every((check) => check.state === 'pass'), deployment, smartAccount, checks }
 }
 
 export async function createStrategyTransaction(
@@ -209,6 +260,24 @@ export async function bindMarketTransaction(
     abi: circuitEngineAbi,
     functionName: 'bindMarket',
     args: [strategyId, market.marketId, market.marketAddress, market.pool, market.collateral, market.outcomeToken, outcomeTokenId],
+  })
+  const receipt = await successfulReceipt(hash)
+  return { hash, blockNumber: receipt.blockNumber }
+}
+
+export async function setExecutionAccountTransaction(
+  provider: InjectedProvider,
+  account: Address,
+  deployment: CircuitDeployment,
+  strategyId: Hex,
+  executionAccount: Address,
+): Promise<TransactionResult> {
+  const { wallet } = clients(provider, account)
+  const hash = await wallet.writeContract({
+    address: deployment.engine,
+    abi: circuitEngineAbi,
+    functionName: 'setExecutionAccount',
+    args: [strategyId, executionAccount],
   })
   const receipt = await successfulReceipt(hash)
   return { hash, blockNumber: receipt.blockNumber }

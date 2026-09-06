@@ -3,6 +3,7 @@ pragma solidity 0.8.30;
 
 import {CircuitEngine} from "../src/CircuitEngine.sol";
 import {CircuitReactivityHandler} from "../src/CircuitReactivityHandler.sol";
+import {CircuitSmartAccount} from "../src/CircuitSmartAccount.sol";
 import {IBinaryMarket, IBinaryPool, IERC20Balance, IERC6909Balance} from "../src/interfaces/IDreamDexBinary.sol";
 
 interface EngineVm {
@@ -85,6 +86,25 @@ contract MockBinaryPool is IBinaryPool {
         outcomeToken.credit(owner, kind == 0 ? 1 : 2, positionReceived);
         return (true, nextOrderId++);
     }
+
+    function placeBinaryOrder(
+        uint8 kind,
+        uint256,
+        uint256,
+        uint64,
+        uint8 orderType,
+        uint8,
+        address,
+        uint96,
+        uint64
+    ) external payable returns (bool success, uint128 orderId) {
+        require(kind == 0 || kind == 2, "invalid kind");
+        require(orderType == 2, "not IOC");
+        if (!succeeds) return (false, 0);
+        collateralToken.debit(msg.sender, collateralUsed);
+        outcomeToken.credit(msg.sender, kind == 0 ? 1 : 2, positionReceived);
+        return (true, nextOrderId++);
+    }
 }
 
 contract MockBinaryMarket is IBinaryMarket {
@@ -151,6 +171,21 @@ contract CircuitEngineTest {
         require(runtime.cumulativeCapitalUsed == used, "cumulative accounting mismatch");
         require(runtime.currentPositionSize == received, "position mismatch");
         require(runtime.status == CircuitEngine.StrategyStatus.WAITING_RESOLUTION, "wrong state");
+    }
+
+    function testSmartAccountExecutesDirectBinaryOrder() public {
+        CircuitSmartAccount account = new CircuitSmartAccount(address(this), address(engine));
+        engine.setExecutionAccount(strategyId, address(account));
+        collateral.setBalance(address(account), 100_000_000);
+
+        _trigger(bytes32(uint256(101)));
+        (uint128 orderId, uint256 used, uint256 received) = engine.executeReadyAction(strategyId, 745_000, 10_000_000);
+
+        require(orderId == 41, "wrong smart-account order id");
+        require(used == 2_500_000, "wrong smart-account collateral accounting");
+        require(received == 10_000_000, "wrong smart-account position accounting");
+        require(collateral.balanceOf(address(account)) == 97_500_000, "account collateral not debited");
+        require(outcome.balanceOf(address(account), 2) == 10_000_000, "account position not credited");
     }
 
     function testRejectsPriceOutsideSlippageBound() public {

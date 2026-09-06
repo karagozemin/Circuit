@@ -70,6 +70,7 @@ export const circuitEngineAbi = [
     ],
   },
   { type: 'function', name: 'reactivityHandler', stateMutability: 'view', inputs: [], outputs: [{ name: '', type: 'address' }] },
+  { type: 'function', name: 'setExecutionAccount', stateMutability: 'nonpayable', inputs: [{ name: 'strategyId', type: 'bytes32' }, { name: 'account', type: 'address' }], outputs: [] },
   {
     type: 'function',
     name: 'createStrategy',

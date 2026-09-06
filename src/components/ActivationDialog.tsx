@@ -19,11 +19,12 @@ interface ActivationDialogProps {
   onActivated: (strategyId: Hex, subscriptionId: bigint) => void
 }
 
-type Progress = 'idle' | 'creating' | 'binding' | 'subscribing' | 'activating' | 'done'
+type Progress = 'idle' | 'creating' | 'configuring' | 'binding' | 'subscribing' | 'activating' | 'done'
 
 const progressLabel: Record<Progress, string> = {
   idle: 'Activate on Shannon',
   creating: 'Creating strategy...',
+  configuring: 'Linking smart account...',
   binding: 'Binding live market...',
   subscribing: 'Creating Reactivity subscription...',
   activating: 'Arming strategy...',
@@ -45,6 +46,7 @@ export function ActivationDialog({
   const [error, setError] = useState('')
   const [strategyId, setStrategyId] = useState<Hex>()
   const [marketBound, setMarketBound] = useState(false)
+  const [executionConfigured, setExecutionConfigured] = useState(false)
   const [subscriptionId, setSubscriptionId] = useState<bigint>()
   const activationKey = useMemo(
     () => `${wallet.address}:${market.marketId}:${JSON.stringify(manifest)}`,
@@ -54,6 +56,7 @@ export function ActivationDialog({
   useEffect(() => {
     setStrategyId(undefined)
     setMarketBound(false)
+    setExecutionConfigured(false)
     setSubscriptionId(undefined)
     setProgress('idle')
     setError('')
@@ -67,6 +70,7 @@ export function ActivationDialog({
       const result = await inspectActivation(
         wallet,
         market,
+        manifest,
         manifest.policy.minSecondsToExpiry,
         subscriptionId === undefined,
       )
@@ -109,6 +113,20 @@ export function ActivationDialog({
       }
 
       if (!marketBound) {
+        const smartAccount = latest.smartAccount
+        if (!executionConfigured || !smartAccount) {
+          if (!smartAccount) throw new Error('Smart account deployment is not configured.')
+          setProgress('configuring')
+          const configured = await actions.setExecutionAccountTransaction(
+            provider,
+            wallet.address,
+            latest.deployment,
+            currentStrategyId,
+            smartAccount,
+          )
+          setExecutionConfigured(true)
+          onActivity('Smart account linked', `${smartAccount.slice(0, 10)}... · CircuitEngine executor`, 'success', configured.hash)
+        }
         setProgress('binding')
         const bound = await actions.bindMarketTransaction(
           provider,
@@ -177,7 +195,7 @@ export function ActivationDialog({
 
       <div className="activation-disclosure">
         <LockKeyhole size={15} />
-        <p><strong>Four wallet confirmations</strong><span>Create strategy, bind market, fund Reactivity, then arm. Live orders use direct market-sdk calls and each asks your wallet to sign.</span></p>
+        <p><strong>Five wallet confirmations</strong><span>Create strategy, link smart account, bind market, fund Reactivity, then arm. The account remains user-owned and the Engine is restricted to direct BinaryPool placement.</span></p>
       </div>
 
       {error && <div className="activation-error"><CircleAlert size={15} /><span>{error}</span></div>}

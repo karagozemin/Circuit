@@ -58,7 +58,9 @@ This simulates `placeBinaryOrderFor` from the proposed engine address against a 
 
 SDK `0.29.0` introduced explicit binary placement kinds. Binary pools reject generic `placeOrderFor` with `UseBinaryPlacement`, so the PRD's documented SpotPool selector `0x80054449` cannot execute an Event Contract order. The deployed pool exposes `placeBinaryOrderFor` (`0x5d97c566`) but rejects an arbitrary engine with `OnlyApprovedContracts()` (`0x3fb0ba2e`). The direct wallet SDK route is different: it calls `placeBinaryOrder` as the wallet caller and does not require the Engine to be allowlisted.
 
-The engine keeps the non-custodial `placeBinaryOrderFor` adapter because it is the correct bounded execution shape once Circuit is admitted as a dreamDEX system contract. Until then, the browser's direct wallet SDK path is a supported manual execution probe, not an autonomous Engine action: it does not update Engine cumulative accounting or state. Circuit will not silently replace either path with pooled custody or an unrestricted hot key.
+The PRD-aligned autonomous alternative is `CircuitSmartAccount`: the user owns and funds the account, the Engine is its immutable executor, and the account forwards only the direct `placeBinaryOrder` selector. A session key can be granted one exact pool/selector until an expiry, so a relayer can submit a pre-approved action without custody of the user's key.
+
+The engine keeps the non-custodial `placeBinaryOrderFor` adapter for a future dreamDEX system-contract approval. Until then, the browser's direct wallet SDK path is a supported manual execution probe, not an autonomous Engine action: it does not update Engine cumulative accounting or state. Circuit will not silently replace either path with pooled custody or an unrestricted hot key.
 
 ## Reactivity Handler
 

@@ -24,10 +24,11 @@ The repository contains:
 - deterministic frontend manifest hashing and Solidity config encoding.
 - real injected-wallet connection with account restoration, STT balance, Shannon network switching, account/chain event handling and local disconnect.
 - a receipt-driven activation review that creates the strategy, atomically binds the live market and handler, creates the on-chain Reactivity subscription, then arms the strategy;
+- a user-owned `CircuitSmartAccount` path: the account can be linked to a strategy, funded/approved by the user, and called by the Engine only for a direct BinaryPool `placeBinaryOrder`;
 - real owner-signed pause and resume transactions with explorer-linked receipts;
 - a deterministic Engine/handler Shannon deployment script with post-deploy wiring verification.
 
-The UI does not present local simulation as a completed on-chain strategy. `Activate` requires a real connected Shannon wallet, verified live market, deployed Engine/handler bytecode, correct wiring and the 32 STT Reactivity minimum. The live “Send SDK IOC” action is a bounded manual execution probe: it uses the connected wallet directly through `@somnia-chain/markets-sdk`, and every order plus any first-use token approval is explicitly signed by the user. It does not mutate the Engine’s cumulative accounting; fully autonomous strategy execution still requires the separate system-allowlisted `placeBinaryOrderFor` path.
+The UI does not present local simulation as a completed on-chain strategy. `Activate` requires a real connected Shannon wallet, verified live market, deployed Engine/handler bytecode, a deployed user-owned smart account linked to that Engine, correct wiring and the 32 STT Reactivity minimum. The account must be funded and approve the current BinaryPool collateral before an autonomous order can execute. The live “Send SDK IOC” action remains available as a bounded manual probe; it does not mutate Engine accounting.
 
 ## Run
 
@@ -42,6 +43,7 @@ Open `http://localhost:5173`.
 
 ```bash
 npm run contracts:deploy
+npm run smart-account:deploy
 ```
 
 The command reads `CIRCUIT_OPERATOR_PRIVATE_KEY` from the Git-ignored `.env.local`, then prints the deployed addresses and transaction hashes. Put only the public addresses in the same local frontend configuration:
@@ -52,6 +54,8 @@ VITE_CIRCUIT_HANDLER_ADDRESS=0x...
 ```
 
 Then restart Vite. The frontend activation review uses the public addresses only; no operator key is bundled into the browser. Never put the deployer key in a `VITE_*` variable.
+
+`smart-account:deploy` creates one account owned by the deployer address and restricted to the deployed Engine. Copy its `VITE_CIRCUIT_SMART_ACCOUNT_ADDRESS` output into `.env.local`, restart Vite, then fund the account and approve the current dreamDEX BinaryPool collateral from the owner wallet before activating a strategy.
 
 The current Shannon deployment and receipt references are recorded in [`deployments/shannon.json`](deployments/shannon.json). Its dreamDEX BinaryPool delegated-operator authorization remains `pending`; this is only needed for future autonomous Engine-side `placeBinaryOrderFor` execution, not for the current wallet-signed SDK path.
 

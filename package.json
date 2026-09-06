@@ -13,6 +13,7 @@
     "spike:order": "tsx scripts/order-spike.ts",
     "spike:operator": "tsx scripts/check-operator.ts",
     "spike:subscribe": "tsx scripts/create-reactivity-subscription.ts",
+    "smart-account:deploy": "forge build && node --env-file=.env.local --import tsx scripts/deploy-smart-account.ts",
     "contracts:build": "forge build",
     "contracts:test": "forge test",
     "contracts:deploy": "forge build && node --env-file=.env.local --import tsx scripts/deploy-circuit.ts"

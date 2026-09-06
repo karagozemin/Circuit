@@ -3,20 +3,25 @@
   "chainId": 50312,
   "deployedAt": "2026-09-05",
   "admin": "0x8aeA55E869eab02A0a68D3172e85C5aeCEe8534D",
-  "engine": "0x95ec2c8a57159f0728ca32d9bef60a185a67010c",
-  "handler": "0xf348469ab75482978e39ca0b1f0f3f52e2e417cf",
+  "engine": "0x2800e2e782eeeabbfad836c5aae08bdd81d3da1c",
+  "handler": "0xb0bf1191ebb20ac41f3e989bcae76057aae4260a",
+  "smartAccount": "0x9a20bf2c51451779ade86ff08265a450421e8cfd",
   "transactions": {
     "engine": {
-      "hash": "0x030d82b3b811e0a449547666fb41ed3d203b9c3ed7973c39f0780b9821db7661",
-      "blockNumber": 479823267
+      "hash": "0x4ae152ab77ace0234051e47f298bb1e5233d2f13a70199e565e991ee7bfde93c",
+      "blockNumber": 480760825
     },
     "handler": {
-      "hash": "0x2ead4f041e70c59280a5efdc2c4e6bc95e43ab858d24a433294358cdcd4dcfe1",
-      "blockNumber": 479823287
+      "hash": "0xa3334db5aea658cda6e4907a935916ea7d03b6ac9debcdb68dede43ea5e71da3",
+      "blockNumber": 480760846
     },
     "wiring": {
-      "hash": "0x53d6abc999c534d554f8e4ba876d08175a55d416b65d3ce301eb2bf82e3210ab",
-      "blockNumber": 479823302
+      "hash": "0x6349ce82eccd2ffe1de7034f3123199d28c697f82850c546327f3cad15175cd1",
+      "blockNumber": 480760857
+    },
+    "smartAccount": {
+      "hash": "0x77b3c557d0dd0b69508842c38b262c97869a4268ed2f97938a59ac3d5e34e01d",
+      "blockNumber": 480761603
     }
   },
   "dreamDexBinaryPoolAuthorization": "pending"

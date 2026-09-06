@@ -3,6 +3,7 @@ pragma solidity 0.8.30;
 
 import {ICircuitEngine} from "./interfaces/ICircuitEngine.sol";
 import {ICircuitReactivityBinder} from "./interfaces/ICircuitReactivityBinder.sol";
+import {ICircuitSmartAccount} from "./interfaces/ICircuitSmartAccount.sol";
 import {IBinaryMarket, IBinaryPool, IERC20Balance, IERC6909Balance} from "./interfaces/IDreamDexBinary.sol";
 
 contract CircuitEngine is ICircuitEngine {
@@ -23,6 +24,7 @@ contract CircuitEngine is ICircuitEngine {
     error DuplicateCallback();
     error ExternalBalanceIncreased();
     error ReentrantCall();
+    error InvalidExecutionAccount();
 
     uint256 public constant PRICE_SCALE = 1_000_000;
     uint16 public constant MAX_SLIPPAGE_BPS = 1_000;
@@ -101,6 +103,7 @@ contract CircuitEngine is ICircuitEngine {
         uint256 currentPositionSize;
         uint256 nextOrderBudget;
         uint256 triggerFillPrice;
+        address executionAccount;
     }
 
     struct ExecutionPlan {
@@ -214,7 +217,8 @@ contract CircuitEngine is ICircuitEngine {
             cumulativeCapitalUsed: 0,
             currentPositionSize: 0,
             nextOrderBudget: config.maxOrderCollateral,
-            triggerFillPrice: 0
+            triggerFillPrice: 0,
+            executionAccount: address(0)
         });
         emit StrategyCreated(strategyId, msg.sender, manifestHash);
     }
@@ -268,6 +272,24 @@ contract CircuitEngine is ICircuitEngine {
         _requireTradingWindow(strategyId, runtime.currentMarket);
         runtime.status = StrategyStatus.ARMED;
         emit StrategyActivated(strategyId, runtime.currentMarketId, runtime.currentPool);
+    }
+
+    /// @notice Attach a user-owned smart account for direct BinaryPool calls.
+    /// Passing zero restores the legacy delegated `placeBinaryOrderFor` path.
+    function setExecutionAccount(bytes32 strategyId, address account) external onlyOwner(strategyId) {
+        if (account != address(0)) {
+            try ICircuitSmartAccount(account).owner() returns (address accountOwner) {
+                if (accountOwner != runtimes[strategyId].owner) revert InvalidExecutionAccount();
+            } catch {
+                revert InvalidExecutionAccount();
+            }
+            try ICircuitSmartAccount(account).executor() returns (address accountExecutor) {
+                if (accountExecutor != address(this)) revert InvalidExecutionAccount();
+            } catch {
+                revert InvalidExecutionAccount();
+            }
+        }
+        runtimes[strategyId].executionAccount = account;
     }
 
     function pauseStrategy(bytes32 strategyId) external onlyOwner(strategyId) {
@@ -345,12 +367,13 @@ contract CircuitEngine is ICircuitEngine {
         runtime.status = StrategyStatus.ORDER_SUBMITTED;
         emit OrderRequested(strategyId, plan.actionKey, yesLimitPrice, quantity, plan.maxSpend);
 
-        uint256 collateralBefore = IERC20Balance(runtime.collateral).balanceOf(runtime.owner);
-        uint256 positionBefore = IERC6909Balance(runtime.outcomeToken).balanceOf(runtime.owner, runtime.outcomeTokenId);
+        address executionOwner = _executionOwner(runtime);
+        uint256 collateralBefore = IERC20Balance(runtime.collateral).balanceOf(executionOwner);
+        uint256 positionBefore = IERC6909Balance(runtime.outcomeToken).balanceOf(executionOwner, runtime.outcomeTokenId);
         bool success;
         (success, orderId) = _placeBinaryOrder(runtime, config, yesLimitPrice, quantity);
-        uint256 collateralAfter = IERC20Balance(runtime.collateral).balanceOf(runtime.owner);
-        uint256 positionAfter = IERC6909Balance(runtime.outcomeToken).balanceOf(runtime.owner, runtime.outcomeTokenId);
+        uint256 collateralAfter = IERC20Balance(runtime.collateral).balanceOf(executionOwner);
+        uint256 positionAfter = IERC6909Balance(runtime.outcomeToken).balanceOf(executionOwner, runtime.outcomeTokenId);
         if (collateralAfter > collateralBefore || positionAfter < positionBefore) revert ExternalBalanceIncreased();
         collateralUsed = collateralBefore - collateralAfter;
         positionReceived = positionAfter - positionBefore;
@@ -475,7 +498,34 @@ contract CircuitEngine is ICircuitEngine {
             expireTimestampNs: uint64(IBinaryMarket(runtime.currentMarket).expiry() * 1_000_000_000),
             userData: uint64(runtime.round)
         });
+        if (runtime.executionAccount != address(0)) {
+            return _sendSmartAccountOrder(runtime.executionAccount, order);
+        }
         return _sendBinaryOrder(order);
+    }
+
+    function _sendSmartAccountOrder(address account, BinaryOrderCall memory order)
+        private
+        returns (bool success, uint128 orderId)
+    {
+        bytes memory callData = abi.encodeWithSelector(
+            IBinaryPool.placeBinaryOrder.selector,
+            order.kind,
+            order.yesLimitPrice,
+            order.quantity,
+            order.expireTimestampNs,
+            ORDER_TYPE_IOC,
+            0,
+            address(0),
+            0,
+            order.userData
+        );
+        bytes memory returned = ICircuitSmartAccount(account).execute(order.pool, 0, callData);
+        (success, orderId) = abi.decode(returned, (bool, uint128));
+    }
+
+    function _executionOwner(StrategyRuntime storage runtime) private view returns (address) {
+        return runtime.executionAccount == address(0) ? runtime.owner : runtime.executionAccount;
     }
 
     function _sendBinaryOrder(BinaryOrderCall memory order) private returns (bool success, uint128 orderId) {
