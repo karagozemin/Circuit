@@ -19,10 +19,11 @@ interface ActivationDialogProps {
   onActivated: (strategyId: Hex, subscriptionId: bigint) => void
 }
 
-type Progress = 'idle' | 'creating' | 'configuring' | 'binding' | 'subscribing' | 'activating' | 'done'
+type Progress = 'idle' | 'preparing' | 'creating' | 'configuring' | 'binding' | 'subscribing' | 'activating' | 'done'
 
 const progressLabel: Record<Progress, string> = {
   idle: 'Activate on Shannon',
+  preparing: 'Preparing account...',
   creating: 'Creating strategy...',
   configuring: 'Linking smart account...',
   binding: 'Binding live market...',
@@ -170,7 +171,37 @@ export function ActivationDialog({
     }
   }
 
+  const prepareSmartAccount = async () => {
+    const provider = window.ethereum
+    const smartAccount = preflight?.smartAccount
+    if (!provider) return setError('Injected wallet is no longer available.')
+    if (!smartAccount) return setError('Smart account deployment is not configured.')
+
+    setProgress('preparing')
+    setError('')
+    try {
+      const actions = await import('../lib/contracts/activation')
+      const prepared = await actions.prepareSmartAccountTransactions(
+        provider,
+        wallet.address,
+        smartAccount,
+        market,
+        manifest,
+      )
+      if (prepared.faucet) onActivity('Collateral faucet funded', `tUSDC minted · ${prepared.faucet.hash.slice(0, 10)}...`, 'success', prepared.faucet.hash)
+      if (prepared.transfer) onActivity('Smart account funded', `${manifest.action.maxCollateral} tUSDC transferred`, 'success', prepared.transfer.hash)
+      if (prepared.approval) onActivity('Pool allowance approved', `${market.pool.slice(0, 10)}... · exact order cap`, 'success', prepared.approval.hash)
+      await check()
+    } catch (cause) {
+      setError(walletErrorMessage(cause))
+    } finally {
+      setProgress('idle')
+    }
+  }
+
   const busy = checking || !['idle', 'done'].includes(progress)
+  const marketReady = preflight?.checks.some((check) => check.id === 'market' && check.state === 'pass')
+  const accountNeedsPreparation = preflight?.checks.some((check) => check.id === 'smart-account' && check.state === 'fail')
 
   return <div className="activation-backdrop" role="presentation">
     <section className="activation-dialog" role="dialog" aria-modal="true" aria-labelledby="activation-title">
@@ -195,16 +226,21 @@ export function ActivationDialog({
 
       <div className="activation-disclosure">
         <LockKeyhole size={15} />
-        <p><strong>Five wallet confirmations</strong><span>Create strategy, link smart account, bind market, fund Reactivity, then arm. The account remains user-owned and the Engine is restricted to direct BinaryPool placement.</span></p>
+        <p><strong>Explicit wallet confirmations</strong><span>Prepare collateral if needed, create the strategy, link the account, bind the market, create Reactivity, then arm. The account remains user-owned and the Engine is restricted to direct BinaryPool placement.</span></p>
       </div>
 
       {error && <div className="activation-error"><CircleAlert size={15} /><span>{error}</span></div>}
 
       <footer className="activation-footer">
         <a href={`https://shannon-explorer.somnia.network/address/${preflight?.deployment?.engine ?? market.pool}`} target="_blank" rel="noreferrer">Inspect contracts <ExternalLink size={13} /></a>
-        <button className="primary-button" onClick={() => void activate()} disabled={busy || !preflight?.ready || progress === 'done'}>
+        <div className="activation-actions">
+          {marketReady && preflight?.smartAccount && accountNeedsPreparation && <button className="ghost-button" onClick={() => void prepareSmartAccount()} disabled={busy}>
+            {progress === 'preparing' && <LoaderCircle size={15} className="spin" />} Prepare account
+          </button>}
+          <button className="primary-button" onClick={() => void activate()} disabled={busy || !preflight?.ready || progress === 'done'}>
           {busy && <LoaderCircle size={15} className="spin" />}{progressLabel[progress]}
-        </button>
+          </button>
+        </div>
       </footer>
     </section>
   </div>

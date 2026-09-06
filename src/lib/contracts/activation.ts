@@ -5,6 +5,7 @@ import {
   createWalletClient,
   custom,
   decodeEventLog,
+  encodeFunctionData,
   fallback,
   getAddress,
   http,
@@ -39,6 +40,25 @@ export const circuitSmartAccountAbi = [
   { type: 'function', name: 'executor', stateMutability: 'view', inputs: [], outputs: [{ name: '', type: 'address' }] },
 ] as const
 
+const collateralWriteAbi = [
+  { type: 'function', name: 'faucet', stateMutability: 'nonpayable', inputs: [{ name: 'amount', type: 'uint256' }], outputs: [] },
+  { type: 'function', name: 'transfer', stateMutability: 'nonpayable', inputs: [{ name: 'to', type: 'address' }, { name: 'amount', type: 'uint256' }], outputs: [{ name: '', type: 'bool' }] },
+  { type: 'function', name: 'approve', stateMutability: 'nonpayable', inputs: [{ name: 'spender', type: 'address' }, { name: 'amount', type: 'uint256' }], outputs: [{ name: '', type: 'bool' }] },
+] as const
+const circuitSmartAccountWriteAbi = [
+  {
+    type: 'function',
+    name: 'execute',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'target', type: 'address' },
+      { name: 'value', type: 'uint256' },
+      { name: 'data', type: 'bytes' },
+    ],
+    outputs: [{ name: 'result', type: 'bytes' }],
+  },
+] as const
+
 export type ReadinessCheck = {
   id: 'deployment' | 'wiring' | 'market' | 'balance' | 'sdk' | 'smart-account'
   label: string
@@ -56,6 +76,13 @@ export interface ActivationPreflight {
 export interface TransactionResult {
   hash: Hash
   blockNumber: bigint
+}
+
+export interface SmartAccountPreparationResult {
+  requiredCollateral: bigint
+  faucet?: TransactionResult
+  transfer?: TransactionResult
+  approval?: TransactionResult
 }
 
 const viteEnv = (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env ?? {}
@@ -281,6 +308,97 @@ export async function setExecutionAccountTransaction(
   })
   const receipt = await successfulReceipt(hash)
   return { hash, blockNumber: receipt.blockNumber }
+}
+
+/**
+ * Prepare the user-owned execution account for the currently resolved pool.
+ *
+ * The connected owner signs every write. The account is funded only for the
+ * manifest's max order amount, and approval is sent through the account so the
+ * ERC-20 allowance owner remains the smart account rather than the EOA.
+ */
+export async function prepareSmartAccountTransactions(
+  provider: InjectedProvider,
+  owner: Address,
+  smartAccount: Address,
+  market: TradingMarketSnapshot,
+  manifest: StrategyManifest,
+): Promise<SmartAccountPreparationResult> {
+  const { public: client, wallet } = clients(provider, owner)
+  const requiredCollateral = parseUnits(manifest.action.maxCollateral, market.collateralDecimals)
+  const [accountCode, accountOwner, accountExecutor, accountBalance, accountAllowance, ownerBalance] = await Promise.all([
+    client.getCode({ address: smartAccount }),
+    client.readContract({ address: smartAccount, abi: circuitSmartAccountAbi, functionName: 'owner' }),
+    client.readContract({ address: smartAccount, abi: circuitSmartAccountAbi, functionName: 'executor' }),
+    client.readContract({ address: market.collateral, abi: collateralReadAbi, functionName: 'balanceOf', args: [smartAccount] }),
+    client.readContract({ address: market.collateral, abi: collateralReadAbi, functionName: 'allowance', args: [smartAccount, market.pool] }),
+    client.readContract({ address: market.collateral, abi: collateralReadAbi, functionName: 'balanceOf', args: [owner] }),
+  ])
+  const deployment = configuredDeployment()
+  if (!accountCode || accountCode === '0x' || !deployment || accountExecutor.toLowerCase() !== deployment.engine.toLowerCase()) {
+    throw new Error('Smart account is not deployed for the configured CircuitEngine.')
+  }
+  if (accountOwner.toLowerCase() !== owner.toLowerCase()) {
+    throw new Error('Smart account owner does not match the connected wallet.')
+  }
+  if (requiredCollateral <= 0n) throw new Error('Manifest max order collateral must be greater than zero.')
+
+  let currentAccountBalance = accountBalance
+  let currentOwnerBalance = ownerBalance
+  let faucet: TransactionResult | undefined
+  let transfer: TransactionResult | undefined
+  let approval: TransactionResult | undefined
+
+  if (currentAccountBalance < requiredCollateral) {
+    const deficit = requiredCollateral - currentAccountBalance
+    if (currentOwnerBalance < deficit) {
+      const mintAmount = deficit - currentOwnerBalance
+      const faucetHash = await wallet.writeContract({
+        address: market.collateral,
+        abi: collateralWriteAbi,
+        functionName: 'faucet',
+        args: [mintAmount],
+      })
+      const faucetReceipt = await successfulReceipt(faucetHash)
+      faucet = { hash: faucetHash, blockNumber: faucetReceipt.blockNumber }
+      currentOwnerBalance = await client.readContract({
+        address: market.collateral,
+        abi: collateralReadAbi,
+        functionName: 'balanceOf',
+        args: [owner],
+      })
+    }
+    if (currentOwnerBalance < deficit) {
+      throw new Error('Collateral faucet did not provide enough tUSDC to fund the smart account.')
+    }
+    const transferHash = await wallet.writeContract({
+      address: market.collateral,
+      abi: collateralWriteAbi,
+      functionName: 'transfer',
+      args: [smartAccount, deficit],
+    })
+    const transferReceipt = await successfulReceipt(transferHash)
+    transfer = { hash: transferHash, blockNumber: transferReceipt.blockNumber }
+    currentAccountBalance += deficit
+  }
+
+  if (accountAllowance < requiredCollateral) {
+    const approveData = encodeFunctionData({
+      abi: collateralWriteAbi,
+      functionName: 'approve',
+      args: [market.pool, requiredCollateral],
+    })
+    const approvalHash = await wallet.writeContract({
+      address: smartAccount,
+      abi: circuitSmartAccountWriteAbi,
+      functionName: 'execute',
+      args: [market.collateral, 0n, approveData],
+    })
+    const approvalReceipt = await successfulReceipt(approvalHash)
+    approval = { hash: approvalHash, blockNumber: approvalReceipt.blockNumber }
+  }
+
+  return { requiredCollateral, faucet, transfer, approval }
 }
 
 export async function createSubscriptionTransaction(
