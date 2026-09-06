@@ -115,7 +115,7 @@ The reduced flow requires deploying the updated Engine and handler and a smart a
 
 The activation flow checks ownership, deployment wiring, market status, expiry buffer and the configured **32 STT** subscription-owner minimum. Initial preparation funds one maximum order; fund the account for additional rounds when needed. The keeper does not faucet or transfer funds automatically.
 
-The [recorded deployment](deployments/shannon.json) is available for inspection. Its demo account belongs to its recorded owner; it is not an account that another connected wallet can operate.
+The [combined-setup deployment](deployments/shannon-combined-setup.json) is live on Shannon and verified to support 5 activation transactions. Its new smart account still needs initial collateral preparation. The [recorded demo deployment](deployments/shannon.json) retains the earlier lifecycle evidence. Both accounts belong to their recorded owner; another connected wallet cannot operate them.
 
 ### Run the keeper
 

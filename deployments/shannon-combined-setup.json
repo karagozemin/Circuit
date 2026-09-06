@@ -1,0 +1,54 @@
+{
+  "network": "Somnia Shannon Testnet",
+  "chainId": 50312,
+  "admin": "0x8aeA55E869eab02A0a68D3172e85C5aeCEe8534D",
+  "startedAt": "2026-09-06T22:51:12.152Z",
+  "sourceCommit": "cc1687d",
+  "transactions": {
+    "engine": {
+      "hash": "0xb69a2ee0a40eb3f16fd5c28bed7f03801587b0164a0e006c5320161c2c945133",
+      "blockNumber": 481619173,
+      "status": "success",
+      "gasUsed": "67616426",
+      "gasCostSTT": "0.405698556"
+    },
+    "handler": {
+      "hash": "0x111ba4a63cf736dd7963c64305f92cf01a289c9b3752dede09c81aaf5b5f8840",
+      "blockNumber": 481619184,
+      "status": "success",
+      "gasUsed": "21841419",
+      "gasCostSTT": "0.131048514"
+    },
+    "wiring": {
+      "hash": "0x381b71f7cff550f565e19610a5924d87ab453128e6c91722433b8168987f42ee",
+      "blockNumber": 481619197,
+      "status": "success",
+      "gasUsed": "46059",
+      "gasCostSTT": "0.000276354"
+    },
+    "smartAccount": {
+      "hash": "0x97a11d48fe11c21f56271d5a8b86908f5a980d7360830434702222a8b71e0920",
+      "blockNumber": 481619209,
+      "status": "success",
+      "gasUsed": "9012722",
+      "gasCostSTT": "0.054076332"
+    }
+  },
+  "previousDeployment": "deployments/shannon.json",
+  "engine": "0xd40ee5a1a5e0d310f15db25eccc7374b0d2fb6c1",
+  "handler": "0xd96e73848c1eafd08a3388de43910b448164e6b7",
+  "smartAccount": "0x8cad8070bf007681e04766fc2428f69bf10e002d",
+  "codeHashes": {
+    "engine": "0x06553b66e62b49e6feec271011b8602ec0a09f46928b53cbc0cbce4cedcb1f11",
+    "handler": "0x8945738ce74f71b3544c751e83190447f65a2c94a954a7a160bd29f2b31b4a48",
+    "smartAccount": "0x18bd7fd9d4b90cdbb5734bb721e79a3f232e4d4cfa2c655f539ef90b8bbb3986"
+  },
+  "verifiedAt": "2026-09-06T22:51:21.402Z",
+  "activationSetupVersion": 1,
+  "activationTransactions": 5,
+  "smartAccountPrepared": false,
+  "liveLifecycle": {
+    "complete": false,
+    "reason": "Deployment and wiring verified; no strategy or subscriptions created for this deployment."
+  }
+}
