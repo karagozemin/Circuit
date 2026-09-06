@@ -98,3 +98,9 @@
 .draft-result.unsaved>svg{color:var(--warning)}
 .inspector-footer{flex-wrap:wrap}
 @media(max-width:600px){.inspector-footer>.btn{flex:1 1 auto}.draft-result{padding:15px}.draft-result strong{font-size:14px}}
+
+.activation-blocker strong{display:block;margin-bottom:6px}
+.activation-blocker p{margin:0;line-height:1.8}
+.activation-blocker .text-link{margin-top:12px}
+.circuit-next-step{padding:0 22px 20px;font-size:12px;color:var(--muted);line-height:1.8}
+.circuit-next-step .text-link{margin-top:9px}

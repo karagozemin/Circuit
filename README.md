@@ -117,6 +117,8 @@ The activation flow checks ownership, deployment wiring, market status, expiry b
 
 The [combined-setup deployment](deployments/shannon-combined-setup.json) is live on Shannon and verified to support 5 activation transactions. Its new smart account still needs initial collateral preparation. The [recorded demo deployment](deployments/shannon.json) retains the earlier lifecycle evidence. Both accounts belong to their recorded owner; another connected wallet cannot operate them.
 
+The workspace tracks one live circuit at a time. To replace it, open **Manage current circuit** from draft review. **End circuit** requires a paused circuit with no tracked position and a separate wallet confirmation; the browser rechecks that state before requesting cancellation. Open positions must settle first. On the current deployment, ending does not release the old market window binding, so choose another available asset/window before activating the next draft. Ending also leaves existing subscriptions and account funds in place.
+
 ### Run the keeper
 
 Simulate one reconciliation pass:
