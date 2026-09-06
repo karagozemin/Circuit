@@ -2,6 +2,7 @@ import type { BinaryMarket, MarketOnchain, SomniaMarkets } from '@somnia-chain/m
 import { createPublicClient, fallback, http } from 'viem'
 import { somniaShannon } from '@somnia-chain/markets-sdk/chains'
 import { createDreamDexExchange, SHANNON_DIAGNOSTIC_RPC_URL, SHANNON_FALLBACK_RPC_URL, SHANNON_RPC_URL } from './config'
+import { MarketDiscoveryError } from './discovery-error'
 
 export interface TradingMarketSnapshot {
   sdkReady?: boolean
@@ -111,8 +112,14 @@ export async function discoverTradingMarket(options: DiscoverMarketOptions = {})
       discoverViaSdk(options),
       new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error('SDK discovery deadline exceeded.')), 8000) }),
     ])
-  } catch {
-    const { discoverFromChain } = await import('./chain-discovery')
-    return discoverFromChain(options)
+  } catch (sdkError) {
+    try {
+      const { discoverFromChain } = await import('./chain-discovery')
+      return await discoverFromChain(options)
+    } catch (chainError) {
+      if (chainError instanceof MarketDiscoveryError) throw chainError
+      const message = (error: unknown) => error instanceof Error ? error.message : String(error)
+      throw new MarketDiscoveryError('connection', `Market verification could not complete. Indexer/SDK: ${message(sdkError)} Chain: ${message(chainError)}`)
+    }
   } finally { if (timer) clearTimeout(timer) }
 }

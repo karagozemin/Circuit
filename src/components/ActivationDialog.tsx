@@ -1,11 +1,12 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Check, CircleAlert, ExternalLink, LoaderCircle, LockKeyhole, X } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Check, CircleAlert, ExternalLink, LoaderCircle, LockKeyhole, RefreshCw } from 'lucide-react'
 import type { Hex } from 'viem'
 import type { StrategyManifest } from '../lib/strategy'
 import type { TradingMarketSnapshot } from '../lib/dreamdex/discovery'
 import type { WalletSnapshot } from '../lib/wallet'
 import { walletErrorMessage } from '../lib/wallet'
-import type { ActivationPreflight } from '../lib/contracts/activation'
+import type { ActivationPreflight, TransactionUpdate } from '../lib/contracts/activation'
+import { ExplorerLink, Modal } from './experience/shared'
 
 type ActivityKind = 'system' | 'trade' | 'reactivity' | 'success'
 
@@ -45,6 +46,8 @@ export function ActivationDialog({
   const [checking, setChecking] = useState(false)
   const [progress, setProgress] = useState<Progress>('idle')
   const [error, setError] = useState('')
+  const [transaction, setTransaction] = useState<TransactionUpdate>()
+  const operationLock = useRef(false)
   const [strategyId, setStrategyId] = useState<Hex>()
   const [marketBound, setMarketBound] = useState(false)
   const [executionConfigured, setExecutionConfigured] = useState(false)
@@ -67,7 +70,18 @@ export function ActivationDialog({
     setAutomaticRolloverConfigured(false)
     setProgress('idle')
     setError('')
+    setTransaction(undefined)
   }, [activationKey])
+
+  useEffect(() => {
+    if (!open) return
+    let disposed = false
+    let unsubscribe = () => {}
+    void import('../lib/contracts/activation').then(actions => {
+      if (!disposed) unsubscribe = actions.observeTransactions(setTransaction)
+    }).catch(cause => { if (!disposed) setError(walletErrorMessage(cause)) })
+    return () => { disposed = true; unsubscribe() }
+  }, [open])
 
   const check = async () => {
     setChecking(true)
@@ -100,16 +114,17 @@ export function ActivationDialog({
   if (!open) return null
 
   const activate = async () => {
+    if (operationLock.current) return
     const provider = window.ethereum
     if (!provider) return setError('Injected wallet is no longer available.')
-
-    const latest = await check()
-    if (!latest?.ready || !latest.deployment) return
-
+    operationLock.current = true
+    setTransaction(undefined)
     setError('')
     let currentStrategyId = strategyId
     let currentSubscriptionId = subscriptionId
     try {
+      const latest = await check()
+      if (!latest?.ready || !latest.deployment) return
       const actions = await import('../lib/contracts/activation')
       if (!currentStrategyId) {
         setProgress('creating')
@@ -198,24 +213,29 @@ export function ActivationDialog({
       onActivated(currentStrategyId, currentSubscriptionId, {subscriptions:[currentSubscriptionId,currentResolutionId,currentSuccessorId],blockNumber:armed.blockNumber})
     } catch (cause) {
       setProgress('idle')
+      setTransaction(undefined)
       setError(walletErrorMessage(cause))
+    } finally {
+      operationLock.current = false
     }
   }
 
   const prepareSmartAccount = async () => {
+    if (operationLock.current) return
     const provider = window.ethereum
-    const smartAccount = preflight?.smartAccount
     if (!provider) return setError('Injected wallet is no longer available.')
-    if (!smartAccount) return setError('Smart account deployment is not configured.')
-
+    operationLock.current = true
+    setTransaction(undefined)
     setProgress('preparing')
     setError('')
     try {
+      const latest = await check()
+      if (!latest?.canPrepareAccount || !latest.smartAccount) return
       const actions = await import('../lib/contracts/activation')
       const prepared = await actions.prepareSmartAccountTransactions(
         provider,
         wallet.address,
-        smartAccount,
+        latest.smartAccount,
         market,
         manifest,
       )
@@ -224,23 +244,20 @@ export function ActivationDialog({
       if (prepared.approval) onActivity('Pool allowance approved', `${market.pool.slice(0, 10)}... · exact order cap`, 'success', prepared.approval.hash)
       await check()
     } catch (cause) {
+      setTransaction(undefined)
       setError(walletErrorMessage(cause))
     } finally {
+      operationLock.current = false
       setProgress('idle')
     }
   }
 
   const busy = checking || !['idle', 'done'].includes(progress)
-  const marketReady = preflight?.checks.some((check) => check.id === 'market' && check.state === 'pass')
-  const accountNeedsPreparation = preflight?.checks.some((check) => check.id === 'smart-account' && check.state === 'fail')
+  const needsPreparation = !!preflight?.canPrepareAccount
 
-  return <div className="activation-backdrop" role="presentation">
-    <section className="activation-dialog" role="dialog" aria-modal="true" aria-labelledby="activation-title">
-      <header className="activation-header">
-        <div><span className="section-kicker">ON-CHAIN ACTIVATION</span><h2 id="activation-title">Review and arm</h2></div>
-        <button className="icon-button" onClick={onClose} disabled={busy} aria-label="Close activation"><X size={18} /></button>
-      </header>
-
+  return <Modal title="Review and activate" eyebrow="ON-CHAIN ACTIVATION" onClose={onClose} busy={busy} wide>
+    <div className="modal-body activation-body" aria-busy={busy}>
+      <p>Opening this review does not request a signature. Prepare your account if needed, then authorize activation below.</p>
       <div className="activation-summary">
         <div><span>Strategy</span><strong>{manifest.name}</strong></div>
         <div><span>Market</span><strong>{market.asset} · {market.intervalSec / 60}m</strong></div>
@@ -255,24 +272,41 @@ export function ActivationDialog({
         </div>)}
       </div>
 
+      {needsPreparation && <div className="activation-next-step">
+        <strong>Next: prepare your smart account</strong>
+        <p>Your smart account needs {manifest.action.maxCollateral} tUSDC available for this order and an allowance to this market’s pool. Your wallet’s STT balance pays for gas and subscriptions; it is separate from this collateral.</p>
+        <p>Prepare account requests any missing test collateral, transfers the shortfall and approves the order limit. Each required transaction asks for wallet confirmation.</p>
+      </div>}
+
+      {transaction && <div className="activation-transaction" role="status" aria-live="polite">
+        <strong>{transaction.phase==='confirmed'?<Check size={16}/>:<LoaderCircle size={16} className="spin"/>}
+          {transaction.phase==='signature'?'Confirm in your wallet':transaction.phase==='submitted'?'Transaction submitted':'Transaction confirmed'}
+        </strong>
+        <p>{transaction.phase==='signature'?'Open your wallet to review this request.':transaction.phase==='submitted'?'Waiting for the chain receipt.':busy?'Continuing to the next step.':'Account checks have been refreshed. Review the next step below.'}</p>
+        {transaction.hash&&<ExplorerLink hash={transaction.hash}/>}
+      </div>}
+
       <div className="activation-disclosure">
         <LockKeyhole size={15} />
         <p><strong>Explicit wallet confirmations</strong><span>Prepare collateral if needed, create the strategy, link the account, bind the market, create Reactivity, then arm. The account remains user-owned. The Engine can place bounded orders, redeem tracked positions and approve authorized successor pools.</span></p>
       </div>
 
-      {error && <div className="activation-error"><CircleAlert size={15} /><span>{error}</span></div>}
-
-      <footer className="activation-footer">
-        <a href={`https://shannon-explorer.somnia.network/address/${preflight?.deployment?.engine ?? market.pool}`} target="_blank" rel="noreferrer">Inspect contracts <ExternalLink size={13} /></a>
+      {error && <div className="activation-error" role="alert"><CircleAlert size={15} /><span>{error}</span></div>}
+    </div>
+      <footer className="activation-footer activation-sticky-footer">
+        <div className="activation-footer-links">
+          <a className="text-link" href={`https://shannon-explorer.somnia.network/address/${preflight?.deployment?.engine ?? market.pool}`} target="_blank" rel="noreferrer">Inspect contracts <ExternalLink size={13} /></a>
+          <button className="text-link" onClick={()=>void check()} disabled={busy}><RefreshCw size={13}/> Recheck readiness</button>
+        </div>
         <div className="activation-actions">
-          {marketReady && preflight?.smartAccount && accountNeedsPreparation && <button className="ghost-button" onClick={() => void prepareSmartAccount()} disabled={busy}>
+          {needsPreparation && <button className="btn btn-primary" onClick={() => void prepareSmartAccount()} disabled={busy}>
             {progress === 'preparing' && <LoaderCircle size={15} className="spin" />} Prepare account
           </button>}
-          <p>Activation authorizes automatic rollover within this asset and cadence. New pool approvals are limited to the computed next-round budget. Pause stops progression.</p><button className="primary-button" onClick={() => void activate()} disabled={busy || !preflight?.ready || progress === 'done'}>
+          <button className={`btn ${needsPreparation?'btn-white':'btn-primary'}`} onClick={() => void activate()} disabled={busy || !preflight?.ready || progress === 'done'}>
           {busy && <LoaderCircle size={15} className="spin" />}{progressLabel[progress]}
           </button>
+          <p>{checking?'Checking the account and live market…':needsPreparation?'Prepare account first. Activation becomes available when all checks pass.':preflight?.ready?'Ready. Authorize activation to start the wallet confirmations.':'Activation is blocked until the checks above pass. Resolve the highlighted issue, then recheck readiness.'}</p>
         </div>
       </footer>
-    </section>
-  </div>
+  </Modal>
 }

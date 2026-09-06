@@ -3,6 +3,7 @@ import { somniaShannon } from '@somnia-chain/markets-sdk/chains'
 import { createPublicClient, fallback, http, parseAbi, type Address } from 'viem'
 import { DREAMDEX_CONTRACTS, SHANNON_RPC_URL, SHANNON_FALLBACK_RPC_URL, SHANNON_DIAGNOSTIC_RPC_URL } from './config'
 import type { DiscoverMarketOptions, TradingMarketSnapshot } from './discovery'
+import { MarketDiscoveryError } from './discovery-error'
 const createdAbi = parseAbi(['event MarketCreated(bytes32 indexed marketId,address indexed market,address indexed pool,uint256 yesId,uint256 noId,address collateral,string asset,uint256 strike,uint64 tradingStart,uint64 expiry,uint256 oracleQuestionId,string question,uint64 intervalSec)'])
 const readAbi = parseAbi(['function owner() view returns(address)','function status() view returns(uint8)','function expiry() view returns(uint64)','function outcomeToken() view returns(address)','function decimals() view returns(uint8)','function getBookLevels(bool,uint64) view returns((uint256 price,uint256 quantity)[])'])
 
@@ -43,5 +44,5 @@ export async function discoverFromChain({asset='BTC',intervalSec=900,minSecondsT
         indexedStatus:'unavailable — verified from chain logs',onchainStatus:status,blockNumber:head.number,blockTimestamp:Number(head.timestamp),sdkReady:false}
     }
   }
-  throw new Error(`No verified Trading ${asset} ${intervalSec/60}m window in recent on-chain creator events. Indexer unavailable; do not activate against a stale market.`)
+  throw new MarketDiscoveryError('unavailable', `No verified Trading ${asset} ${intervalSec/60}m window with at least ${minSecondsToExpiry}s remaining was found in recent on-chain creator events.`)
 }

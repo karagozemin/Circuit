@@ -6,6 +6,7 @@ import { describeStrategyEvent } from '../lib/contracts/activity'
 import { readWallet, SHANNON_CHAIN_ID, switchToShannon, WALLET_AUTOCONNECT_KEY, walletErrorMessage, type WalletSnapshot } from '../lib/wallet'
 import type { TradingMarketSnapshot } from '../lib/dreamdex/discovery'
 import type { StrategyManifest } from '../lib/strategy'
+import { MarketDiscoveryError } from '../lib/dreamdex/discovery-error'
 
 export interface ActivityEntry {id:string;at:string;title:string;detail:string;kind:'system'|'trade'|'reactivity'|'success'|'error';hash?:Hex}
 export interface Runtime {owner:Address;manifestHash:Hex;status:number;round:number;currentMarketId:Hex;currentMarket:Address;currentPool:Address;collateral:Address;executionAccount:Address;currentPositionSize:bigint;nextOrderBudget:bigint;cumulativeCapitalUsed:bigint;consecutiveLosses:number}
@@ -80,8 +81,8 @@ export function useCircuit(){
 export type Circuit=ReturnType<typeof useCircuit>
 
 export function useMarket(manifest:StrategyManifest,enabled=true){
- const [state,setState]=useState<{status:'idle'|'loading'|'ready'|'error';market?:TradingMarketSnapshot;error?:string;checkedAt?:string}>({status:'idle'})
+ const [state,setState]=useState<{status:'idle'|'loading'|'ready'|'error';market?:TradingMarketSnapshot;error?:string;errorKind?:'unavailable'|'connection';checkedAt?:string}>({status:'idle'})
  const [revision,setRevision]=useState(0)
- useEffect(()=>{if(!enabled)return;let disposed=false;setState({status:'loading'});void import('../lib/dreamdex/discovery').then(({discoverTradingMarket})=>discoverTradingMarket({asset:manifest.series.asset,intervalSec:manifest.series.intervalSec,minSecondsToExpiry:manifest.policy.minSecondsToExpiry})).then(market=>{if(!disposed)setState({status:'ready',market,checkedAt:new Date().toISOString()})}).catch(error=>{if(!disposed)setState({status:'error',error:walletErrorMessage(error)})});return()=>{disposed=true}},[enabled,manifest.series.asset,manifest.series.intervalSec,manifest.policy.minSecondsToExpiry,revision])
+ useEffect(()=>{if(!enabled)return;let disposed=false;setState({status:'loading'});void import('../lib/dreamdex/discovery').then(({discoverTradingMarket})=>discoverTradingMarket({asset:manifest.series.asset,intervalSec:manifest.series.intervalSec,minSecondsToExpiry:manifest.policy.minSecondsToExpiry})).then(market=>{if(!disposed)setState({status:'ready',market,checkedAt:new Date().toISOString()})}).catch(error=>{if(!disposed)setState({status:'error',error:walletErrorMessage(error),errorKind:error instanceof MarketDiscoveryError?error.kind:'connection'})});return()=>{disposed=true}},[enabled,manifest.series.asset,manifest.series.intervalSec,manifest.policy.minSecondsToExpiry,revision])
  return {...state,retry:()=>setRevision(v=>v+1)}
 }

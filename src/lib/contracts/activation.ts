@@ -82,6 +82,7 @@ export type ReadinessCheck = {
 
 export interface ActivationPreflight {
   ready: boolean
+  canPrepareAccount?: boolean
   deployment?: CircuitDeployment
   smartAccount?: Address
   checks: ReadinessCheck[]
@@ -99,7 +100,6 @@ export interface SmartAccountPreparationResult {
   approval?: TransactionResult
 }
 
-const viteEnv = (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env ?? {}
 const binaryMarketReadAbi = [
   { type: 'function', name: 'status', stateMutability: 'view', inputs: [], outputs: [{ name: '', type: 'uint8' }] },
   { type: 'function', name: 'expiry', stateMutability: 'view', inputs: [], outputs: [{ name: '', type: 'uint64' }] },
@@ -115,7 +115,7 @@ export function parseDeployment(engineValue?: string, handlerValue?: string): Ci
 }
 
 export function configuredDeployment() {
-  return parseDeployment(viteEnv.VITE_CIRCUIT_ENGINE_ADDRESS, viteEnv.VITE_CIRCUIT_HANDLER_ADDRESS)
+  return parseDeployment(import.meta.env?.VITE_CIRCUIT_ENGINE_ADDRESS, import.meta.env?.VITE_CIRCUIT_HANDLER_ADDRESS)
 }
 
 function publicClient() {
@@ -130,7 +130,7 @@ function publicClient() {
 }
 
 function configuredSmartAccount() {
-  const value = viteEnv.VITE_CIRCUIT_SMART_ACCOUNT_ADDRESS
+  const value = import.meta.env?.VITE_CIRCUIT_SMART_ACCOUNT_ADDRESS
   return value && isAddress(value) ? getAddress(value) : undefined
 }
 
@@ -226,6 +226,7 @@ export async function inspectActivation(
   })
 
   const smartAccount = configuredSmartAccount()
+  let canPrepareAccount = false
   if (!smartAccount) {
     checks.push({
       id: 'smart-account',
@@ -242,11 +243,13 @@ export async function inspectActivation(
       client.readContract({ address: market.collateral, abi: collateralReadAbi, functionName: 'allowance', args: [smartAccount, market.pool] }),
     ])
     const requiredCollateral = parseUnits(manifest.action.maxCollateral, market.collateralDecimals)
-    const accountReady = Boolean(accountCode && accountCode !== '0x')
+    const accountConfigured = Boolean(accountCode && accountCode !== '0x')
       && accountOwner.toLowerCase() === wallet.address.toLowerCase()
       && accountExecutor.toLowerCase() === deployment.engine.toLowerCase()
+    const accountReady = accountConfigured
       && accountBalance >= requiredCollateral
       && accountAllowance >= requiredCollateral
+    canPrepareAccount = accountConfigured && !accountReady && marketReady && wired
     checks.push({
       id: 'smart-account',
       label: 'User-owned smart account',
@@ -261,12 +264,12 @@ export async function inspectActivation(
 
   checks.push({
     id: 'sdk',
-    label: 'Market SDK order path',
+    label: 'Bounded execution path',
     state: 'pass',
-    detail: 'Direct wallet signer will call BinaryPool.placeBinaryOrder through @somnia-chain/markets-sdk. Engine allowlisting is not required for this path.',
+    detail: 'Activation links your smart account to CircuitEngine. A running keeper submits orders that the Engine checks against your approved rules.',
   })
 
-  return { ready: checks.every((check) => check.state === 'pass'), deployment, smartAccount, checks }
+  return { ready: checks.every((check) => check.state === 'pass'), deployment, smartAccount, canPrepareAccount, checks }
 }
 
 export async function createStrategyTransaction(
