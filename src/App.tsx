@@ -11,6 +11,6 @@ export default function App(){
  const navigate=(next:string)=>{window.location.hash=next}
  const start=(template?:string)=>{if(template)sessionStorage.setItem('circuit.start-template',template);navigate(localStorage.getItem(INTRO_KEY)==='true'?'/app':'/welcome')}
  const complete=()=>{localStorage.setItem(INTRO_KEY,'true');navigate('/app')}
- useEffect(()=>{document.title=route.startsWith('/app')?'Circuit — Your workspace':'Circuit — Your rules. Always in motion.'},[route])
+ useEffect(()=>{document.title=route.startsWith('/app')?'Circuit — Your workspace':'Circuit'},[route])
  return <><a className="skip-link" href="#main-content">Skip to content</a>{route.startsWith('/app')?<Suspense fallback={<div className="workspace-loading"><Brand/><Spinner label="Opening your workspace"/></div>}><Workspace route={route} navigate={navigate}/></Suspense>:route==='/welcome'?<Intro onComplete={complete} onBack={()=>navigate('/')}/>:<Landing onStart={start}/>}</>
 }
