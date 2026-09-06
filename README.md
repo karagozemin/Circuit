@@ -1,82 +1,171 @@
 <p align="center">
-  <img src="./circuit_logo.png" alt="Circuit" width="320" />
+  <img src="./circuit_logo.png" alt="Circuit" width="240" />
 </p>
 
 # Circuit
 
-Programmable, bounded strategies for dreamDEX Event Contracts.
+**Define the rules. Bound the capital. Verify every transition.**
 
-Circuit compiles a visual or natural-language strategy into a deterministic manifest, shows the risk envelope before activation, and progresses through rolling dreamDEX markets using Somnia on-chain Reactivity.
+Circuit lets users configure conditional trading strategies for **dreamDEX Event Contracts**, approve a deterministic manifest, and execute across market windows on **Somnia**. A user-owned smart account holds the funds. On-chain Reactivity delivers market events. A keeper submits transactions that the Engine checks against the approved strategy.
 
-## Current Status
+**[Architecture](ARCHITECTURE.md) · [Live demo](docs/LIVE_DEMO.md) · [Video](deployments/evidence/live-demo/circuit-live-cycle.mp4) · [Deployment](deployments/shannon.json) · [Acceptance evidence](docs/ACCEPTANCE.md)**
 
-A real Shannon callback → automatic order → fill → resolution/redeem → successor rollover completed on 6 September 2026. See the [live demo and receipts](docs/LIVE_DEMO.md), [acceptance evidence and remaining PRD checks](docs/ACCEPTANCE.md), and [keeper operations](docs/AUTOMATION.md). The demo strategy is paused after arming round 2.
+## A complete cycle, verified on Shannon
 
+On **6 September 2026**, Circuit completed a real testnet lifecycle:
 
-The repository contains:
+```text
+Activate → Reactivity callback → Keeper order → Fill
+         → Resolution callback → Redeem → Automatic successor → Round 2
+```
 
-- a working React strategy builder and risk review surface;
-- canonical Strategy Manifest v1 validation;
-- live BTC/ETH Event Contract discovery through `@somnia-chain/markets-sdk`;
-- chain-head status and expiry gating before activation;
-- a bounded IOC order dry-run and guarded broadcast script;
-- a browser wallet execution path that sends bounded manual IOC orders through `@somnia-chain/markets-sdk` and asks the connected wallet to sign;
-- a live BinaryPool authorization diagnostic;
-- a Solidity Reactivity handler with emitter/topic validation and callback idempotency;
-- a `CircuitEngine` with manifest anchoring, market binding, risk caps, state transitions, replay protection, IOC execution and actual-balance accounting;
-- deterministic frontend manifest hashing and Solidity config encoding.
-- real injected-wallet connection with account restoration, STT balance, Shannon network switching, account/chain event handling and local disconnect.
-- a receipt-driven activation review that creates the strategy, atomically binds the live market and handler, creates the on-chain Reactivity subscription, then arms the strategy;
-- a user-owned `CircuitSmartAccount` path: the account can be linked to a strategy, prepared from the activation review with explicit owner-signed funding/approval transactions, and called by the Engine for a bounded direct BinaryPool `placeBinaryOrder` and exact-position module redemption;
-- real owner-signed pause and resume transactions with explorer-linked receipts;
-- a deterministic Engine/handler Shannon deployment script with post-deploy wiring verification.
+The strategy bought **50 UP shares for 1 tUSDC** in a BTC 1h market. The market resolved LOSS. Circuit redeemed the tracked position for zero proceeds, authenticated the next market, revoked the old pool allowance, and approved exactly **1 tUSDC** for round 2. The owner then paused the strategy and the keeper stopped. The final recorded account balance was **1 tUSDC**.
 
-The UI does not present local simulation as a completed on-chain strategy. `Activate` requires a real connected Shannon wallet, verified live market, deployed Engine/handler bytecode, a deployed user-owned smart account linked to that Engine, correct wiring and the 32 STT Reactivity minimum. The activation review exposes `Prepare account` when collateral or the current-pool allowance is missing; it requests only the manifest's max order amount through explicit owner-signed transactions. The live “Send SDK IOC” action remains available as a bounded manual probe; it does not mutate Engine accounting.
+| Proof | Recorded evidence |
+| --- | --- |
+| Real callback and automatic order | [Callback transaction](https://shannon-explorer.somnia.network/tx/0xfe816d6588142202de86143f2c23a00411b51c768df2d81d2a25ff52a67a37e4) · [Engine order transaction](https://shannon-explorer.somnia.network/tx/0xb9561543c7839b00691ffd62e488a7e497bbefd56edda18f721ec20d37c15d91) |
+| Resolution and redemption | [Resolution callback transaction](https://shannon-explorer.somnia.network/tx/0xf606387aeda808c1906132412b62d21d9d6f767a385259923c6e3a0e6401e776) |
+| Automatic successor and bounded approval | [Rollover transaction](https://shannon-explorer.somnia.network/tx/0xec259cfe0e4cdc5d9d8936e5e6c040fd391c431786932d757a6069621bcf078d) |
+| Receipts, final state and allowances | [Independent receipt audit](deployments/evidence/live-demo/audit.json) · [Standalone evidence viewer](deployments/evidence/live-demo/index.html) |
+| Local verification | **26 TypeScript tests + 37 Forge tests**, keeper integration, production build and tools typecheck; [recorded scope](docs/ACCEPTANCE.md) |
 
-## Run
+The [59-second video](deployments/evidence/live-demo/circuit-live-cycle.mp4) is a real evidence-dashboard recording at **20× speed**. Recording starts after the fill, displays the earlier transaction evidence, and captures the live resolution and rollover. The [demo report](docs/LIVE_DEMO.md) documents the explicit test strategy, owner-controlled seed trade and use of public book liquidity.
+
+<details>
+<summary>View the live monitor during the recorded run</summary>
+
+![Circuit live monitor showing the verified strategy and on-chain activity](deployments/evidence/live-demo/app-live.png)
+
+This capture shows the position awaiting resolution. The completed result and final paused state are documented above.
+
+</details>
+
+## Why Circuit exists
+
+A rolling event market gives each window its own market identity, expiry and pool. A recurring strategy therefore needs more than an entry signal: it must verify the current venue, respect an execution budget, settle the position and authorize the correct successor.
+
+Circuit expresses those decisions in a reviewable strategy and enforces the supported rules through one Engine. The current builder exposes a **structured strategy graph** with configurable thresholds, sides and policies. Its topology follows the supported v1 lifecycle.
+
+For example, the Contrarian Roller configuration expresses:
+
+```text
+WHEN BTC 15m UP last fill > 0.70
+BUY DOWN with at most 10 tUSDC and 200 bps slippage
+ON WIN allocate 50% of redeemed proceeds to the next order, within all caps
+CONTINUE for at most 5 rounds; stop after 2 consecutive losses
+LIMIT cumulative collateral spent to 20 tUSDC; require 120s before expiry
+```
+
+This is a configuration example. The recorded live demo used a separately approved **BTC 1h / BUY UP below 0.70** strategy. Market discovery must find an eligible live window before activation.
+
+## What is implemented
+
+| Capability | Behavior |
+| --- | --- |
+| Strategy review | Visual rules, explicit risk limits, canonical JSON and a deterministic manifest hash |
+| Intent compilation | A local natural-language parser produces a draft; missing mandatory risk fields remain incomplete |
+| Bounded execution | Strict above/below fill triggers, BUY UP / BUY DOWN, IOC orders, tick/lot alignment and slippage checks |
+| Account ownership | Collateral and positions live in a user-owned account; the Engine has a restricted execution path |
+| Event-driven progression | Real subscriptions for pool fills, market status changes and creator market announcements |
+| Settlement and rollover | On-chain resolution reads, exact-position redemption and explicitly authorized successor approvals |
+| Recovery and observability | Keeper restart recovery, permissionless settlement/expiry sync, pause/resume, explorer links and verified browser-session recovery |
+
+The capital cap currently measures **cumulative collateral spent**. Redemptions do not replenish it. A successful order consumes that lifetime budget even when its position later wins.
+
+For the component map, transaction sequence, state machine, accounting equations and authority model, read **[ARCHITECTURE.md](ARCHITECTURE.md)**.
+
+## Run locally
+
+Use **Node.js 24** and npm for the recorded setup. Install **Foundry** (`forge` and `anvil`) for contracts and keeper integration tests. The lockfile pins JavaScript dependencies; [foundry.toml](foundry.toml) pins Solidity **0.8.30**.
 
 ```bash
-npm install
+npm ci
 npm run dev
 ```
 
-Open `http://localhost:5173`.
+Open `http://localhost:5173`. Read endpoints have defaults; wallet transactions require Shannon configuration and an eligible market.
 
-## Deploy and Configure
-
-```bash
-npm run contracts:deploy
-npm run smart-account:deploy
-```
-
-The command reads `CIRCUIT_OPERATOR_PRIVATE_KEY` from the Git-ignored `.env.local`, then prints the deployed addresses and transaction hashes. Put only the public addresses in the same local frontend configuration:
+For a new checkout, create a local configuration without replacing an existing one:
 
 ```bash
-VITE_CIRCUIT_ENGINE_ADDRESS=0x...
-VITE_CIRCUIT_HANDLER_ADDRESS=0x...
+cp -n .env.example .env.local
 ```
 
-Then restart Vite. The frontend activation review uses the public addresses only; no operator key is bundled into the browser. Never put the deployer key in a `VITE_*` variable.
+| Setting | Purpose |
+| --- | --- |
+| `VITE_CIRCUIT_ENGINE_ADDRESS` | Public Engine address used by the browser |
+| `VITE_CIRCUIT_HANDLER_ADDRESS` | Public Reactivity handler address |
+| `VITE_CIRCUIT_SMART_ACCOUNT_ADDRESS` | Account owned by the wallet that will activate the strategy |
+| `VITE_SOMNIA_RPC_URL` / `VITE_SOMNIA_WS_RPC_URL` | Optional public transport overrides; see [.env.example](.env.example) for fallbacks |
+| `CIRCUIT_OPERATOR_PRIVATE_KEY` | Server/CLI signer for deployment and keeper transactions |
+| `CIRCUIT_STRATEGY_IDS` | Explicit comma-separated strategy IDs serviced by the keeper |
 
-`smart-account:deploy` creates one account owned by the deployer address and restricted to the deployed Engine. Copy its `VITE_CIRCUIT_SMART_ACCOUNT_ADDRESS` output into `.env.local`, restart Vite, connect that owner wallet, choose an eligible live market, and use `Prepare account` in the activation review. Circuit then requests only the missing tUSDC funding and current-pool approval before activation.
+Private signer material belongs only in the ignored local environment. `VITE_*` values are public browser configuration.
 
-The current Shannon deployment and receipt references are recorded in [`deployments/shannon.json`](deployments/shannon.json). The linked smart-account path does not require dreamDEX delegated-operator allowlisting. Current subscription IDs, funding/approval receipts and independently verified live callback, order, settlement and rollover evidence are recorded there.
+### Deploy and activate your own strategy
 
-## Verification
+1. Configure the CLI signer in `.env.local` and fund it with Shannon STT for gas.
+2. Run `npm run contracts:deploy`. Set the returned Engine and handler addresses in the public configuration.
+3. Run `npm run smart-account:deploy`. Set its returned account address and restart Vite. This script makes the CLI signer the account owner; connect that same wallet in the browser.
+4. Choose an eligible market and review a complete manifest. **Prepare account** requests any missing test collateral and the current-pool allowance.
+5. Authorize activation. The wallet creates the strategy, links the account, binds the market, authorizes bounded automatic rollover, creates three subscriptions, then arms the strategy.
+6. Run a keeper for the resulting strategy ID.
+
+The activation flow checks ownership, deployment wiring, market status, expiry buffer and the configured **32 STT** subscription-owner minimum. Initial preparation funds one maximum order; fund the account for additional rounds when needed. The keeper does not faucet or transfer funds automatically.
+
+The [recorded deployment](deployments/shannon.json) is available for inspection. Its demo account belongs to its recorded owner; it is not an account that another connected wallet can operate.
+
+### Run the keeper
+
+Simulate one reconciliation pass:
 
 ```bash
-npm run build
-npm test
-npm run typecheck:tools
-npm run contracts:test
-npm run spike:discover
-npm run spike:order -- --side=DOWN
+CIRCUIT_STRATEGY_IDS=0xYOUR_STRATEGY_ID npm run keeper -- --once
 ```
 
-The order spike is dry-run only unless `--execute` is explicitly passed. Never expose a private key in a `VITE_*` environment variable.
+Run the transaction-signing daemon:
 
-See [the integration spike](docs/INTEGRATION_SPIKE.md) for network configuration, observed failure modes, authorization checks and the Reactivity subscription flow. See [the engine notes](docs/ENGINE.md) for state-machine and risk invariants.
+```bash
+CIRCUIT_STRATEGY_IDS=0xYOUR_STRATEGY_ID npm run keeper -- --execute
+```
 
-## Product Scope
+The keeper watches Engine/handler events and reconciles every 30 seconds. The owner authorizes automatic rollover once; a keeper can then progress authenticated successors within the Engine's constraints. Preserve its receipt journal and subscription cache across restarts. A browser activation does not automatically enroll a strategy in a hosted keeper service.
 
-The implementation follows `Circuit_PRD_v1.0_LOCKED.md`. P0 remains the only active scope until all acceptance criteria pass.
+See [keeper operations](docs/AUTOMATION.md) for signer configuration, recovery and the optional owner-run fallback.
+
+## Verify the implementation
+
+| Command | Checks |
+| --- | --- |
+| `npm test` | Manifest validation, hashing/config encoding, order planning, wallet/discovery helpers, subscription decoding and session parsing |
+| `npm run contracts:test` | Engine accounting, authorization, callbacks, settlement, replay protection and successor rules |
+| `npm run test:keeper` | Actual keeper process with separate disposable signers on local Anvil; execution, restart, redemption and consent-gated rollover |
+| `npm run typecheck:tools` | TypeScript CLI and integration tooling |
+| `npm run build` | Frontend typecheck and production bundle |
+| `npm run contracts:abi` | Regenerate the frontend lifecycle ABI from Foundry artifacts after contract changes |
+
+Local integration uses a mock venue and a local precompile fixture. The [Shannon receipt audit](deployments/evidence/live-demo/audit.json) is the separate evidence for real callbacks and settlement.
+
+## Current boundaries
+
+The working live cycle is complete; the full PRD acceptance matrix remains tracked in [ACCEPTANCE.md](docs/ACCEPTANCE.md).
+
+- The builder follows a fixed v1 graph. Free node/edge composition and arbitrary programs are outside the current implementation.
+- The intent compiler is local. The planned Somnia Agent integration remains outstanding.
+- The recorded live proof covers BUY UP and a losing resolution. Live BUY DOWN, winning redemption and void acceptance remain open; winner/void paths have local contract coverage.
+- BTC/ETH and 15m/1h configurations are supported, but availability is checked on chain. The recorded run used 1h because the observed 15m series was stale.
+- Handler bindings currently support one active strategy per emitter. Automatic cross-user keeper enrollment and production subscription aggregation are not implemented.
+- The deployment has administrative wiring authority. Review the [trust boundaries](ARCHITECTURE.md#authority-and-trust-boundaries) before treating it as a production service.
+
+## Explore the repository
+
+| Location | Responsibility |
+| --- | --- |
+| [src/App.tsx](src/App.tsx) · [ActivationDialog](src/components/ActivationDialog.tsx) | Builder, wallet review and live state |
+| [src/lib/strategy.ts](src/lib/strategy.ts) · [contract encoding](src/lib/contracts/engine.ts) | Manifest validation, canonicalization and executable configuration |
+| [contracts/src](contracts/src) | Engine, Reactivity handler, smart account and venue interfaces |
+| [scripts/keeper.ts](scripts/keeper.ts) | Automatic execution, subscriptions, sync and successor reconciliation |
+| [src/lib/dreamdex](src/lib/dreamdex) | SDK integration, market discovery and chain fallback |
+| [deployments](deployments) | Deployment records, receipts, audits and demo artifacts |
+
+**Continue reading:** [Architecture](ARCHITECTURE.md) · [Engine notes](docs/ENGINE.md) · [Keeper runbook](docs/AUTOMATION.md) · [Integration findings](docs/INTEGRATION_SPIKE.md) · [Locked PRD](Circuit_PRD_v1.0_LOCKED.md)
