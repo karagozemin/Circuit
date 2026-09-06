@@ -31,6 +31,16 @@ import {
 import type { TradingMarketSnapshot } from '../dreamdex/discovery'
 import { circuitEngineAbi, manifestHash, manifestToEngineConfig } from './engine'
 
+export type TransactionUpdate = { phase:'signature'|'submitted'|'confirmed'; hash?:Hash }
+const transactionObservers=new Set<(update:TransactionUpdate)=>void>()
+export function observeTransactions(listener:(update:TransactionUpdate)=>void){
+  transactionObservers.add(listener)
+  return ()=>{transactionObservers.delete(listener)}
+}
+function transactionUpdate(update:TransactionUpdate){
+  for(const observer of transactionObservers){try{observer(update)}catch{/* UI observers cannot interrupt a transaction. */}}
+}
+
 export const REACTIVITY_MIN_BALANCE = 32n * 10n ** 18n
 export const ORDER_FILLED_TOPIC = '0xc87f4223e9e7c4e4f39f9b34fc9d64d78cdb95d9035b3748cbde59521261a399' as Hex
 
@@ -132,8 +142,10 @@ function clients(provider: InjectedProvider, account: Address) {
 }
 
 async function successfulReceipt(hash: Hash) {
+  transactionUpdate({phase:'submitted',hash})
   const receipt = await publicClient().waitForTransactionReceipt({ hash })
   if (receipt.status !== 'success') throw new Error(`Transaction ${hash} reverted.`)
+  transactionUpdate({phase:'confirmed',hash})
   return receipt
 }
 
@@ -264,6 +276,7 @@ export async function createStrategyTransaction(
   manifest: StrategyManifest,
 ) {
   const { wallet } = clients(provider, account)
+  transactionUpdate({phase:'signature'})
   const hash = await wallet.writeContract({
     address: deployment.engine,
     abi: circuitEngineAbi,
@@ -286,6 +299,7 @@ export async function bindMarketTransaction(
 ): Promise<TransactionResult> {
   const { wallet } = clients(provider, account)
   const outcomeTokenId = manifest.action.type === 'BUY_UP' ? market.yesId : market.noId
+  transactionUpdate({phase:'signature'})
   const hash = await wallet.writeContract({
     address: deployment.engine,
     abi: circuitEngineAbi,
@@ -304,6 +318,7 @@ export async function setExecutionAccountTransaction(
   executionAccount: Address,
 ): Promise<TransactionResult> {
   const { wallet } = clients(provider, account)
+  transactionUpdate({phase:'signature'})
   const hash = await wallet.writeContract({
     address: deployment.engine,
     abi: circuitEngineAbi,
@@ -357,6 +372,7 @@ export async function prepareSmartAccountTransactions(
     const deficit = requiredCollateral - currentAccountBalance
     if (currentOwnerBalance < deficit) {
       const mintAmount = deficit - currentOwnerBalance
+      transactionUpdate({phase:'signature'})
       const faucetHash = await wallet.writeContract({
         address: market.collateral,
         abi: collateralWriteAbi,
@@ -375,6 +391,7 @@ export async function prepareSmartAccountTransactions(
     if (currentOwnerBalance < deficit) {
       throw new Error('Collateral faucet did not provide enough tUSDC to fund the smart account.')
     }
+    transactionUpdate({phase:'signature'})
     const transferHash = await wallet.writeContract({
       address: market.collateral,
       abi: collateralWriteAbi,
@@ -392,6 +409,7 @@ export async function prepareSmartAccountTransactions(
       functionName: 'approve',
       args: [market.pool, requiredCollateral],
     })
+    transactionUpdate({phase:'signature'})
     const approvalHash = await wallet.writeContract({
       address: smartAccount,
       abi: circuitSmartAccountWriteAbi,
@@ -422,6 +440,7 @@ export async function createSubscriptionTransaction(
     emitter = record[7]
     topic = keccak256(stringToHex('MarketCreated(bytes32,address,address,uint256,uint256,address,string,uint256,uint64,uint64,uint256,string,uint64)'))
   }
+  transactionUpdate({phase:'signature'})
   const hash = await sdk.subscribe({
     handlerContractAddress: deployment.handler,
     filter: {eventTopics:[topic],emitter},
@@ -450,6 +469,7 @@ export async function strategyTransaction(
   strategyId: Hex,
 ): Promise<TransactionResult> {
   const { wallet } = clients(provider, account)
+  transactionUpdate({phase:'signature'})
   const hash = await wallet.writeContract({
     address: deployment.engine,
     abi: circuitEngineAbi,
@@ -463,6 +483,7 @@ export async function strategyTransaction(
 
 export async function enableAutomaticRolloverTransaction(provider: InjectedProvider, account: Address, deployment: CircuitDeployment, strategyId: Hex): Promise<TransactionResult> {
   const { wallet } = clients(provider,account)
+  transactionUpdate({phase:'signature'})
   const hash = await wallet.writeContract({address:deployment.engine,abi:circuitEngineAbi,functionName:'setAutomaticRollover',args:[strategyId,true]})
   const receipt = await successfulReceipt(hash)
   return {hash,blockNumber:receipt.blockNumber}
