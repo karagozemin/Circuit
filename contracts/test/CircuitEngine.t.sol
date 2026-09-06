@@ -201,6 +201,79 @@ contract CircuitEngineTest {
         engine.activateStrategy(strategyId);
     }
 
+    function _clearBindings() private {
+        handler.unbindMarket(address(pool));
+        handler.unbindMarket(address(market));
+    }
+
+    function testCombinedSetupPreservesOwnerRulesAndRequiresExplicitActivation() public {
+        _clearBindings();
+        CircuitSmartAccount account = new CircuitSmartAccount(address(this), address(engine));
+        bytes32 id = engine.createConfiguredStrategy(MANIFEST_HASH, _config(), address(account), MARKET_ID, true);
+        (CircuitEngine.StrategyConfig memory config, CircuitEngine.StrategyRuntime memory runtime) = engine.getStrategy(id);
+        require(engine.activationSetupVersion() == 1, "missing feature detection");
+        require(runtime.owner == address(this) && runtime.manifestHash == MANIFEST_HASH, "wrong owner or manifest");
+        require(runtime.executionAccount == address(account), "wrong account");
+        require(runtime.currentMarketId == MARKET_ID && runtime.currentPool == address(pool), "wrong market");
+        require(runtime.outcomeTokenId == 2 && config.maxTotalCapitalAtRisk == _config().maxTotalCapitalAtRisk, "wrong rules");
+        require(engine.automaticRollover(id), "rollover not authorized");
+        require(runtime.status == CircuitEngine.StrategyStatus.VALIDATED, "armed before subscriptions");
+        (bytes32 boundId,,, bool active) = handler.bindings(address(market));
+        require(active && boundId == id, "missing resolution binding");
+        engine.activateStrategy(id);
+        (, runtime) = engine.getStrategy(id);
+        require(runtime.status == CircuitEngine.StrategyStatus.ARMED, "not armed");
+    }
+
+    function testCombinedSetupSupportsUpAndNoRollover() public {
+        _clearBindings();
+        CircuitSmartAccount account = new CircuitSmartAccount(address(this), address(engine));
+        CircuitEngine.StrategyConfig memory config = _config();
+        config.actionType = CircuitEngine.ActionType.BUY_UP;
+        bytes32 id = engine.createConfiguredStrategy(MANIFEST_HASH, config, address(account), MARKET_ID, false);
+        (, CircuitEngine.StrategyRuntime memory runtime) = engine.getStrategy(id);
+        require(runtime.outcomeTokenId == 1, "wrong up outcome");
+        require(!engine.automaticRollover(id), "unexpected rollover consent");
+    }
+
+    function testCombinedSetupRejectsWrongAccountOwnerOrExecutorWithoutCreatingStrategy() public {
+        uint256 nonce = engine.ownerNonces(address(this));
+        CircuitSmartAccount wrongOwner = new CircuitSmartAccount(address(0xBEEF), address(engine));
+        CircuitSmartAccount wrongExecutor = new CircuitSmartAccount(address(this), address(0xBEEF));
+        vm.expectRevert(CircuitEngine.InvalidExecutionAccount.selector);
+        engine.createConfiguredStrategy(MANIFEST_HASH, _config(), address(wrongOwner), MARKET_ID, true);
+        vm.expectRevert(CircuitEngine.InvalidExecutionAccount.selector);
+        engine.createConfiguredStrategy(MANIFEST_HASH, _config(), address(wrongExecutor), MARKET_ID, true);
+        vm.expectRevert(CircuitEngine.InvalidExecutionAccount.selector);
+        engine.createConfiguredStrategy(MANIFEST_HASH, _config(), address(0), MARKET_ID, true);
+        require(engine.ownerNonces(address(this)) == nonce, "partial strategy created");
+    }
+
+    function testCombinedSetupRollsBackWhenMarketClosed() public {
+        _clearBindings();
+        market.setStatus(2);
+        CircuitSmartAccount account = new CircuitSmartAccount(address(this), address(engine));
+        uint256 nonce = engine.ownerNonces(address(this));
+        vm.expectRevert(CircuitEngine.MarketNotTrading.selector);
+        engine.createConfiguredStrategy(MANIFEST_HASH, _config(), address(account), MARKET_ID, true);
+        require(engine.ownerNonces(address(this)) == nonce, "partial strategy created");
+        (,,, bool active) = handler.bindings(address(pool));
+        require(!active, "partial pool binding");
+    }
+
+    function testCombinedSetupRollsBackPoolBindingWhenResolutionEmitterOccupied() public {
+        handler.unbindMarket(address(pool));
+        CircuitSmartAccount account = new CircuitSmartAccount(address(this), address(engine));
+        uint256 nonce = engine.ownerNonces(address(this));
+        vm.expectRevert(CircuitReactivityHandler.EmitterAlreadyBound.selector);
+        engine.createConfiguredStrategy(MANIFEST_HASH, _config(), address(account), MARKET_ID, true);
+        require(engine.ownerNonces(address(this)) == nonce, "partial strategy created");
+        (,,, bool active) = handler.bindings(address(pool));
+        require(!active, "partial pool binding");
+        (bytes32 boundId,,,) = handler.bindings(address(market));
+        require(boundId == strategyId, "existing binding overwritten");
+    }
+
     function testValidatedStrategyExecutesFromActualBalanceDeltas() public {
         _trigger(bytes32(uint256(1)));
         (uint128 orderId, uint256 used, uint256 received) = engine.executeReadyAction(strategyId, 745_000, 10_000_000);

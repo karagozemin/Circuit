@@ -83,6 +83,7 @@ export type ReadinessCheck = {
 export interface ActivationPreflight {
   ready: boolean
   canPrepareAccount?: boolean
+  supportsCombinedSetup?: boolean
   deployment?: CircuitDeployment
   smartAccount?: Address
   checks: ReadinessCheck[]
@@ -184,6 +185,10 @@ export async function inspectActivation(
   })
   if (!deployed) return { ready: false, deployment, checks }
 
+  const supportsCombinedSetup = await client.readContract({
+    address: deployment.engine, abi: circuitEngineAbi, functionName: 'activationSetupVersion',
+  }).then(version => version === 1n).catch(() => false)
+
   const wiredHandler = await client.readContract({
     address: deployment.engine,
     abi: circuitEngineAbi,
@@ -269,7 +274,29 @@ export async function inspectActivation(
     detail: 'Activation links your smart account to CircuitEngine. A running keeper submits orders that the Engine checks against your approved rules.',
   })
 
-  return { ready: checks.every((check) => check.state === 'pass'), deployment, smartAccount, canPrepareAccount, checks }
+  return { ready: checks.every((check) => check.state === 'pass'), deployment, smartAccount, canPrepareAccount, supportsCombinedSetup, checks }
+}
+
+export async function createConfiguredStrategyTransaction(
+  provider: InjectedProvider,
+  account: Address,
+  deployment: CircuitDeployment,
+  manifest: StrategyManifest,
+  executionAccount: Address,
+  market: TradingMarketSnapshot,
+) {
+  const { wallet } = clients(provider, account)
+  transactionUpdate({ phase: 'signature' })
+  const hash = await wallet.writeContract({
+    address: deployment.engine,
+    abi: circuitEngineAbi,
+    functionName: 'createConfiguredStrategy',
+    args: [manifestHash(manifest), manifestToEngineConfig(manifest), executionAccount, market.marketId, true],
+  })
+  const receipt = await successfulReceipt(hash)
+  const created = parseEventLogs({ abi: circuitEngineAbi, eventName: 'StrategyCreated', logs: receipt.logs })[0]
+  if (!created) throw new Error('StrategyCreated event was not found in the receipt.')
+  return { hash, blockNumber: receipt.blockNumber, strategyId: created.args.strategyId }
 }
 
 export async function createStrategyTransaction(

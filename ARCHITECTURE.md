@@ -128,8 +128,8 @@ sequenceDiagram
     participant D as dreamDEX
 
     U->>A: Fund and approve initial pool
-    U->>E: Create, link and bind strategy
-    U->>E: Authorize bounded rollover
+    U->>E: Atomic create, link, bind and rollover consent
+    Note over U,E: New Engine: one setup transaction; legacy: four
     U->>H: Subscribe to fills, status and creator
     U->>E: Activate
     D-->>H: Fill event and native callback

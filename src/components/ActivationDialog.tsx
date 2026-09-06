@@ -20,7 +20,7 @@ interface ActivationDialogProps {
   onActivated: (strategyId: Hex, subscriptionId: bigint, details: {subscriptions:bigint[];blockNumber:bigint}) => void
 }
 
-const activationSteps = [
+const legacyActivationSteps = [
   { key: 'creating', label: 'Create strategy' },
   { key: 'configuring', label: 'Link smart account' },
   { key: 'binding', label: 'Bind live market' },
@@ -31,12 +31,18 @@ const activationSteps = [
   { key: 'activating', label: 'Activate strategy' },
 ] as const
 
-type Progress = 'idle' | 'preparing' | 'done' | typeof activationSteps[number]['key']
+const combinedActivationSteps = [
+  { key: 'setting-up', label: 'Create and configure strategy' },
+  ...legacyActivationSteps.slice(4),
+] as const
+
+type Progress = 'idle' | 'preparing' | 'done' | 'setting-up' | typeof legacyActivationSteps[number]['key']
 
 const progressLabel: Record<Progress, string> = {
   idle: 'Authorize automation & activate',
   preparing: 'Preparing account...',
   creating: 'Creating strategy...',
+  'setting-up': 'Creating and configuring strategy...',
   configuring: 'Linking smart account...',
   binding: 'Binding live market...',
   rollover: 'Authorizing automatic rollover...',
@@ -62,6 +68,7 @@ export function ActivationDialog({
   const [error, setError] = useState('')
   const [transaction, setTransaction] = useState<TransactionUpdate>()
   const operationLock = useRef(false)
+  const [setupMode, setSetupMode] = useState<'combined' | 'legacy'>()
   const [strategyId, setStrategyId] = useState<Hex>()
   const [marketBound, setMarketBound] = useState(false)
   const [executionConfigured, setExecutionConfigured] = useState(false)
@@ -75,6 +82,7 @@ export function ActivationDialog({
   )
 
   useEffect(() => {
+    setSetupMode(undefined)
     setStrategyId(undefined)
     setMarketBound(false)
     setExecutionConfigured(false)
@@ -140,7 +148,23 @@ export function ActivationDialog({
       const latest = await check()
       if (!latest?.ready || !latest.deployment) return
       const actions = await import('../lib/contracts/activation')
-      if (!currentStrategyId) {
+      let configuredTogether = false
+      if (!currentStrategyId && latest.supportsCombinedSetup) {
+        if (!latest.smartAccount) throw new Error('Smart account deployment is not configured.')
+        setSetupMode('combined')
+        setProgress('setting-up')
+        const created = await actions.createConfiguredStrategyTransaction(
+          provider, wallet.address, latest.deployment, manifest, latest.smartAccount, market,
+        )
+        currentStrategyId = created.strategyId
+        setStrategyId(created.strategyId)
+        setExecutionConfigured(true)
+        setMarketBound(true)
+        setAutomaticRolloverConfigured(true)
+        configuredTogether = true
+        onActivity('Strategy configured', 'Strategy created, account linked, market bound and rollover authorized.', 'success', created.hash)
+      } else if (!currentStrategyId) {
+        setSetupMode('legacy')
         setProgress('creating')
         const created = await actions.createStrategyTransaction(provider, wallet.address, latest.deployment, manifest)
         currentStrategyId = created.strategyId
@@ -148,7 +172,7 @@ export function ActivationDialog({
         onActivity('Strategy created', `${created.strategyId.slice(0, 10)}... · block ${created.blockNumber}`, 'success', created.hash)
       }
 
-      if (!marketBound) {
+      if (!marketBound && !configuredTogether) {
         const smartAccount = latest.smartAccount
         if (!executionConfigured || !smartAccount) {
           if (!smartAccount) throw new Error('Smart account deployment is not configured.')
@@ -176,7 +200,7 @@ export function ActivationDialog({
         onActivity('Market bound', `${market.asset} · ${market.marketId.slice(0, 10)}...`, 'success', bound.hash)
       }
 
-      if (!automaticRolloverConfigured) {
+      if (!automaticRolloverConfigured && !configuredTogether) {
         setProgress('rollover')
         const permission = await actions.enableAutomaticRolloverTransaction(provider,wallet.address,latest.deployment,currentStrategyId)
         setAutomaticRolloverConfigured(true)
@@ -268,21 +292,26 @@ export function ActivationDialog({
 
   const busy = checking || !['idle', 'done'].includes(progress)
   const needsPreparation = !!preflight?.canPrepareAccount
-  const completedSteps = [!!strategyId, executionConfigured, marketBound, automaticRolloverConfigured, subscriptionId !== undefined, resolutionSubscriptionId !== undefined, successorSubscriptionId !== undefined, progress === 'done']
+  const combinedSetup = setupMode ? setupMode === 'combined' : !!preflight?.supportsCombinedSetup
+  const activationSteps = combinedSetup ? combinedActivationSteps : legacyActivationSteps
+  const setupCompleted = combinedSetup
+    ? [!!strategyId && executionConfigured && marketBound && automaticRolloverConfigured]
+    : [!!strategyId, executionConfigured, marketBound, automaticRolloverConfigured]
+  const completedSteps = [...setupCompleted, subscriptionId !== undefined, resolutionSubscriptionId !== undefined, successorSubscriptionId !== undefined, progress === 'done']
   const completedCount = completedSteps.filter(Boolean).length
   const remainingCount = activationSteps.length - completedCount
   const activeStep = activationSteps.findIndex(step => step.key === progress)
   const progressTitle = activeStep >= 0
     ? `Step ${activeStep + 1} of ${activationSteps.length} · ${activationSteps[activeStep].label}`
     : progress === 'preparing' ? 'Account preparation · up to 3 transactions'
-    : progress === 'done' ? 'All 8 activation steps confirmed'
-    : completedCount ? `${completedCount} of 8 confirmed · ${remainingCount} remaining` : 'Activation · 8 wallet confirmations'
+    : progress === 'done' ? `All ${activationSteps.length} activation steps confirmed`
+    : completedCount ? `${completedCount} of ${activationSteps.length} confirmed · ${remainingCount} remaining` : preflight ? `Activation · ${activationSteps.length} wallet confirmations` : 'Checking activation requirements…'
 
   return <Modal title="Review and activate" eyebrow="ON-CHAIN ACTIVATION" onClose={onClose} busy={busy} wide>
     <div className="modal-body activation-body" aria-busy={busy}>
-      <p>Activation requires 8 separate transactions, each confirmed in your wallet. Account preparation may require up to 3 additional transactions. Opening this review sends nothing.</p>
-      <details className="activation-step-details">
-        <summary>See all 8 activation steps</summary>
+      <p>{preflight ? `Activation requires ${activationSteps.length} transactions, each confirmed in your wallet.` : 'Checking the number of wallet confirmations required.'} Account preparation may require up to 3 additional transactions. Opening this review sends nothing.</p>
+      {preflight && <details className="activation-step-details">
+        <summary>See all {activationSteps.length} activation steps</summary>
         <ol className="activation-step-list">
           {activationSteps.map((step, index) => <li key={step.key} className={completedSteps[index]?'complete':step.key===progress?'current':''} aria-current={step.key===progress?'step':undefined}>
             <span>{completedSteps[index]?<Check size={13}/>:index+1}</span>
@@ -290,7 +319,7 @@ export function ActivationDialog({
             <small>{completedSteps[index]?'Confirmed':step.key===progress?'In progress':'Pending'}</small>
           </li>)}
         </ol>
-      </details>
+      </details>}
       <div className="activation-summary">
         <div><span>Strategy</span><strong>{manifest.name}</strong></div>
         <div><span>Market</span><strong>{market.asset} · {market.intervalSec / 60}m</strong></div>
@@ -330,7 +359,7 @@ export function ActivationDialog({
       <footer className="activation-footer activation-sticky-footer">
         <div className="activation-progress" role="status" aria-live="polite">
           <strong>{progressTitle}</strong>
-          <span>{progress==='preparing'?'Preparation is separate from the 8 activation steps.':activeStep>=0?`${completedCount} confirmed · ${remainingCount} remaining, including this step`:completedCount?'Confirmed steps are retained while this dialog stays open.':'Three of these transactions create separate Reactivity subscriptions.'}</span>
+          <span>{progress==='preparing'?`Preparation is separate from the ${activationSteps.length} activation steps.`:activeStep>=0?`${completedCount} confirmed · ${remainingCount} remaining, including this step`:completedCount?'Confirmed steps are retained while this dialog stays open.':'Three of these transactions create separate Reactivity subscriptions.'}</span>
           <progress max={activationSteps.length} value={completedCount} aria-label="Confirmed activation steps"/>
         </div>
         <div className="activation-footer-links">

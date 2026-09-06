@@ -201,7 +201,7 @@ contract CircuitEngine is ICircuitEngine {
     }
 
     function createStrategy(bytes32 manifestHash, StrategyConfig calldata config)
-        external
+        public
         returns (bytes32 strategyId)
     {
         _validateConfig(manifestHash, config);
@@ -230,6 +230,29 @@ contract CircuitEngine is ICircuitEngine {
         emit StrategyCreated(strategyId, msg.sender, manifestHash);
     }
 
+    /// @notice Feature detection for clients that also support older deployments.
+    function activationSetupVersion() external pure returns (uint256) { return 1; }
+
+    /// @notice Create and configure a strategy atomically, preserving the caller as owner.
+    /// The strategy stays VALIDATED until subscriptions are ready and the owner arms it.
+    function createConfiguredStrategy(
+        bytes32 manifestHash,
+        StrategyConfig calldata config,
+        address executionAccount,
+        bytes32 marketId,
+        bool enableRollover
+    ) external returns (bytes32 strategyId) {
+        if (executionAccount == address(0)) revert InvalidExecutionAccount();
+        strategyId = createStrategy(manifestHash, config);
+        setExecutionAccount(strategyId, executionAccount);
+        IBinaryModule.MarketRecord memory record = binaryModule.markets(marketId);
+        if (record.market == address(0)) revert InvalidMarketBinding();
+        IBinaryMarket market = IBinaryMarket(record.market);
+        uint256 outcomeId = config.actionType == ActionType.BUY_UP ? market.yesId() : market.noId();
+        _bindMarket(strategyId, marketId, record.market, record.pool, record.collateral, market.outcomeToken(), outcomeId);
+        setAutomaticRollover(strategyId, enableRollover);
+    }
+
     function bindMarket(
         bytes32 strategyId,
         bytes32 marketId,
@@ -243,7 +266,7 @@ contract CircuitEngine is ICircuitEngine {
     }
 
     /// @notice Explicit owner consent for bounded approvals to verified successor pools.
-    function setAutomaticRollover(bytes32 strategyId, bool enabled) external onlyOwner(strategyId) {
+    function setAutomaticRollover(bytes32 strategyId, bool enabled) public onlyOwner(strategyId) {
         if (enabled && runtimes[strategyId].executionAccount == address(0)) revert InvalidExecutionAccount();
         automaticRollover[strategyId] = enabled;
         emit AutomaticRolloverUpdated(strategyId, enabled);
@@ -333,7 +356,7 @@ contract CircuitEngine is ICircuitEngine {
 
     /// @notice Attach a user-owned smart account for direct BinaryPool calls.
     /// Passing zero restores the legacy delegated `placeBinaryOrderFor` path.
-    function setExecutionAccount(bytes32 strategyId, address account) external onlyOwner(strategyId) {
+    function setExecutionAccount(bytes32 strategyId, address account) public onlyOwner(strategyId) {
         if (runtimes[strategyId].currentPositionSize != 0) revert InvalidState();
         if (account != address(0)) {
             try ICircuitSmartAccount(account).owner() returns (address accountOwner) {

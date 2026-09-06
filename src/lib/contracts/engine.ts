@@ -42,7 +42,30 @@ export function manifestToEngineConfig(manifest: StrategyManifest): EngineStrate
   }
 }
 
+const strategyConfigComponents = [
+  { name: 'assetId', type: 'uint8' },
+  { name: 'intervalSec', type: 'uint32' },
+  { name: 'triggerType', type: 'uint8' },
+  { name: 'triggerValue', type: 'uint256' },
+  { name: 'actionType', type: 'uint8' },
+  { name: 'maxOrderCollateral', type: 'uint256' },
+  { name: 'maxSlippageBps', type: 'uint16' },
+  { name: 'maxTotalCapitalAtRisk', type: 'uint256' },
+  { name: 'maxRounds', type: 'uint16' },
+  { name: 'stopAfterLosses', type: 'uint16' },
+  { name: 'minSecondsToExpiry', type: 'uint32' },
+  { name: 'rollPercentBps', type: 'uint16' },
+] as const
+
 export const circuitEngineAbi = [
+  { type: 'function', name: 'activationSetupVersion', stateMutability: 'pure', inputs: [], outputs: [{ name: '', type: 'uint256' }] },
+  { type: 'function', name: 'createConfiguredStrategy', stateMutability: 'nonpayable', inputs: [
+    { name: 'manifestHash', type: 'bytes32' },
+    { name: 'config', type: 'tuple', components: strategyConfigComponents },
+    { name: 'executionAccount', type: 'address' },
+    { name: 'marketId', type: 'bytes32' },
+    { name: 'enableRollover', type: 'bool' },
+  ], outputs: [{ name: 'strategyId', type: 'bytes32' }] },
   { type: 'function', name: 'setAutomaticRollover', stateMutability: 'nonpayable', inputs: [{name:'strategyId',type:'bytes32'},{name:'enabled',type:'bool'}],outputs:[] },
   {
     type: 'event',
@@ -83,20 +106,7 @@ export const circuitEngineAbi = [
       {
         name: 'config',
         type: 'tuple',
-        components: [
-          { name: 'assetId', type: 'uint8' },
-          { name: 'intervalSec', type: 'uint32' },
-          { name: 'triggerType', type: 'uint8' },
-          { name: 'triggerValue', type: 'uint256' },
-          { name: 'actionType', type: 'uint8' },
-          { name: 'maxOrderCollateral', type: 'uint256' },
-          { name: 'maxSlippageBps', type: 'uint16' },
-          { name: 'maxTotalCapitalAtRisk', type: 'uint256' },
-          { name: 'maxRounds', type: 'uint16' },
-          { name: 'stopAfterLosses', type: 'uint16' },
-          { name: 'minSecondsToExpiry', type: 'uint32' },
-          { name: 'rollPercentBps', type: 'uint16' },
-        ],
+        components: strategyConfigComponents,
       },
     ],
     outputs: [{ name: 'strategyId', type: 'bytes32' }],

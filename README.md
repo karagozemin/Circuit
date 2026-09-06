@@ -108,8 +108,10 @@ Private signer material belongs only in the ignored local environment. `VITE_*` 
 2. Run `npm run contracts:deploy`. Set the returned Engine and handler addresses in the public configuration.
 3. Run `npm run smart-account:deploy`. Set its returned account address and restart Vite. This script makes the CLI signer the account owner; connect that same wallet in the browser.
 4. Choose an eligible market and review a complete manifest. **Prepare account** requests any missing test collateral and the current-pool allowance.
-5. Authorize activation. The wallet creates the strategy, links the account, binds the market, authorizes bounded automatic rollover, creates three subscriptions, then arms the strategy.
+5. Authorize activation. New Engine deployments require **5 wallet confirmations**: one atomic strategy setup (create, link account, bind market, authorize bounded rollover), three Reactivity subscriptions, then activation. The UI detects older deployments and retains their 8-transaction flow. Account preparation can require up to 3 additional transactions.
 6. Run a keeper for the resulting strategy ID.
+
+The reduced flow requires deploying the updated Engine and handler and a smart account whose immutable executor is that new Engine; a frontend redeploy alone does not reduce confirmations. Existing strategies remain on their original Engine.
 
 The activation flow checks ownership, deployment wiring, market status, expiry buffer and the configured **32 STT** subscription-owner minimum. Initial preparation funds one maximum order; fund the account for additional rounds when needed. The keeper does not faucet or transfer funds automatically.
 

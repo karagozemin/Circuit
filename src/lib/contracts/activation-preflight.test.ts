@@ -58,3 +58,22 @@ describe('account preparation readiness', () => {
     expect(await inspectActivation(wallet, market, initialManifest)).toMatchObject({ ready: true, canPrepareAccount: false })
   })
 })
+
+
+describe('combined setup compatibility', () => {
+  it('detects a deployment supporting atomic setup', async () => {
+    reads.activationSetupVersion = 1n
+    reads.balanceOf = reads.allowance = 10_000_000n
+    expect(await inspectActivation(wallet, market, initialManifest)).toMatchObject({ ready: true, supportsCombinedSetup: true })
+  })
+  it('keeps legacy deployments usable when feature detection reverts', async () => {
+    reads.balanceOf = reads.allowance = 10_000_000n
+    readContract.mockImplementation(({ functionName }) => functionName === 'activationSetupVersion'
+      ? Promise.reject(new Error('Unknown function')) : Promise.resolve(reads[functionName]))
+    expect(await inspectActivation(wallet, market, initialManifest)).toMatchObject({ ready: true, supportsCombinedSetup: false })
+  })
+  it('does not assume compatibility with unknown setup versions', async () => {
+    reads.activationSetupVersion = 2n
+    expect(await inspectActivation(wallet, market, initialManifest)).toMatchObject({ supportsCombinedSetup: false })
+  })
+})
