@@ -1,7 +1,10 @@
 import { useEffect, useRef, type ReactNode } from 'react'
 import { ArrowUpRight, Check, ChevronRight, GitBranch, Loader2, LockKeyhole, Radio, RotateCcw, X } from 'lucide-react'
 import type { StrategyManifest } from '../../lib/strategy'
-export function Brand({small=false}:{small?:boolean}){return <span className={`brand ${small?'brand-small':''}`}><svg className="brand-symbol" viewBox="0 0 40 40" fill="none" aria-hidden="true"><path d="M28 10H16a9 9 0 0 0-9 9v2a9 9 0 0 0 9 9h12M28 10v9H17v11" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/><circle cx="28" cy="10" r="4" fill="currentColor"/><circle cx="28" cy="30" r="4" fill="currentColor"/></svg><span>circuit<span className="brand-period">.</span></span></span>}
+import circuitLogo from '../../../circuit_logo.png'
+
+export function LogoMark({className='brand-symbol'}:{className?:string}){return <img className={className} src={circuitLogo} alt="" aria-hidden="true" width={64} height={64} decoding="async"/>}
+export function Brand({small=false}:{small?:boolean}){return <span className={`brand ${small?'brand-small':''}`}><LogoMark/><span>circuit<span className="brand-period">.</span></span></span>}
 export function Pill({children,tone='neutral',pulse=false}:{children:ReactNode;tone?:string;pulse?:boolean}){return <span className={`pill pill-${tone}`}>{pulse&&<i className="status-point"/>}{children}</span>}
 export function Spinner({label='Working'}:{label?:string}){return <span className="inline-loading"><Loader2 size={15} className="spin"/>{label}</span>}
 export function ExplorerLink({hash,children='View transaction'}:{hash:string;children?:ReactNode}){return <a className="text-link" href={`https://shannon-explorer.somnia.network/tx/${hash}`} target="_blank" rel="noreferrer">{children}<ArrowUpRight size={14}/></a>}
