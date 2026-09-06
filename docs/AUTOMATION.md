@@ -19,7 +19,7 @@ The optional `--owner-rollover` fallback remains available for strategies withou
 
 A missed resolution callback is recovered by permissionless `syncStrategy(strategyId, marketId)`, using the bound market's settlement state. An expired ARMED/TRIGGERED window advances as SKIPPED. A missed fill callback is not replaced by an unverified off-chain price.
 
-For the real network preparation recorded in `deployments/shannon.json`, the strategy remains VALIDATED. It must be explicitly activated against an eligible window before the keeper can execute. The recorded pool approval expires in usefulness with that window.
+The current real-network demo in `deployments/shannon.json` is activated. Consult `liveLifecycle` and its linked proof for its observed state; initial preparation balances and allowances are historical snapshots. Pool approvals are specific to each window.
 
 ## Evidence and limitations
 

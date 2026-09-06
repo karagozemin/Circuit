@@ -1,50 +1,50 @@
 {
   "network": "Somnia Shannon Testnet",
   "chainId": 50312,
-  "deployedAt": "2026-09-06T18:16:52.319Z",
+  "deployedAt": "2026-09-06T19:33:24.347Z",
   "admin": "0x8aeA55E869eab02A0a68D3172e85C5aeCEe8534D",
-  "engine": "0x6acee4da5be122dfbdfd97b62372b477cba0e87d",
-  "handler": "0x5583f698872dfdf2073afd06813d22fc6291d26a",
-  "smartAccount": "0xaffc595d553f940b12ac02059205ca3d39c4e0a8",
+  "engine": "0x4534f1b19fbf7a42df52b33309881cb4e359569a",
+  "handler": "0xceb971fdf1082e952dcbb41caa6d69eb592ddf4b",
+  "smartAccount": "0xeb8bd09e0694c036c6def25d38a6dae96d68f345",
   "transactions": {
     "engine": {
-      "hash": "0x6f07d1030ab8090153d032759a4bb3145b595d4111d17b0aa09d9450ad58c22c",
-      "blockNumber": 481452272
+      "hash": "0xe0e2e54e81df600ce738fed3bd49d24f974056da4849e82386f968db0ce2c4bc",
+      "blockNumber": 481467522
     },
     "handler": {
-      "hash": "0xa86c345142d3c8896e515316b81f8ae90961c7da098040c78e141ad6f1029081",
-      "blockNumber": 481452285
+      "hash": "0x689b752c4236af3305d589224c8f5744ecc8e7dbc21f8b2dbbabc257e6fca1d7",
+      "blockNumber": 481467541
     },
     "wiring": {
-      "hash": "0xecc0377a9c57f8f757643c32b972ce234052ba278e9b5b165b8ccfa89637b8f9",
-      "blockNumber": 481452300
+      "hash": "0x2d45dfe840253964b5f0ecc027c18fdff525185300cb08c0a6bddc0c232ca1de",
+      "blockNumber": 481467557
     },
     "smartAccount": {
-      "hash": "0x82d0a7c62d356aecc7fcbb7ba71461f35852dd3ebb7201c5c484ef4e56866b8b",
-      "blockNumber": 481452882
+      "hash": "0xff1b033791c7d984ae785e4a74b0686cfcccb17f98f716e7a0f981e677666853",
+      "blockNumber": 481468977
     }
   },
   "codeHashes": {
-    "engine": "0xdfa53e85c1d059f01a17d9b715bd9d68cffc75b66d37552bfe5786365bb13f8d",
-    "handler": "0xcc02aaccef4c98618e498169af078bf672577ab592fe9e7cb5a95a37b7ee9d83",
-    "smartAccount": "0x9a0de74c628ae131432332545d2c6de6cc2b911b06a5ff38b9689e4608bb332e"
+    "engine": "0xa9df987ca6b66814b76bc448bd7dfc8ffdaf7c5bb678d37f05c4099fe5d790e2",
+    "handler": "0x8945738ce74f71b3544c751e83190447f65a2c94a954a7a160bd29f2b31b4a48",
+    "smartAccount": "0x26882022a2b25d030ded40ef1797c14d5e8446ad90c1ca53766e94a4f9e5e911"
   },
   "preparation": {
-    "strategyId": "0x6f448fa61ef7c5fef6022d47a1bf01265d9cd337c956e163a4a09acd3e38cb98",
-    "status": "VALIDATED — not activated",
-    "marketId": "0x0000000000000000000000000000000000000000000000000000000000015405",
+    "strategyId": "0x20844a8dbeb64ffcdcfaa1d1934b2228358f0cd515e1ec1ed732fc93a88f67f1",
+    "status": "Activated; initial funding snapshot below. Current lifecycle is tracked separately.",
+    "marketId": "0x0000000000000000000000000000000000000000000000000000000000015497",
     "smartAccountBalance": "2000000",
     "allowance": "1000000",
-    "allowanceSpender": "0x246a65643ad8b6C6Dbd0b017A259DA07681242FD",
+    "allowanceSpender": "0x66A5890DB152dB5f236D6FD21D880E4fB1097e89",
     "collateral": "0x70a86D8842FB63C4Ad2b7cdddF530eBf1BB25d8E",
     "collateralDecimals": 6,
     "subscriptions": [
       {
         "kind": "fill",
-        "id": "16512021",
-        "hash": "0x9f99d0e2c1eb17a2ca39210700a211f947b1af515216c552c2170267012f29b7",
-        "blockNumber": "481453902",
-        "emitter": "0x246a65643ad8b6C6Dbd0b017A259DA07681242FD",
+        "id": "16525481",
+        "hash": "0xc202082ef730631edff11d9369c9cd8d29f4943fbeb0ee1a36fd912049bd960f",
+        "blockNumber": "481500337",
+        "emitter": "0x66A5890DB152dB5f236D6FD21D880E4fB1097e89",
         "topic": "0xc87f4223e9e7c4e4f39f9b34fc9d64d78cdb95d9035b3748cbde59521261a399",
         "info": [
           {
@@ -56,8 +56,8 @@
             ],
             "origin": "0x0000000000000000000000000000000000000000",
             "caller": "0x0000000000000000000000000000000000000000",
-            "emitter": "0x246a65643ad8b6C6Dbd0b017A259DA07681242FD",
-            "handlerContractAddress": "0x5583F698872dfdf2073Afd06813d22FC6291d26A",
+            "emitter": "0x66A5890DB152dB5f236D6FD21D880E4fB1097e89",
+            "handlerContractAddress": "0xcEB971fdf1082E952DCBb41cAA6D69EB592dDf4b",
             "handlerFunctionSelector": "0x53edf33d",
             "priorityFeePerGas": "2000000000",
             "maxFeePerGas": "20000000000",
@@ -70,10 +70,10 @@
       },
       {
         "kind": "resolution",
-        "id": "16512029",
-        "hash": "0xe0b2cb9fc04fd8c7f8e87d2af91625181fc687537b6ab913bfb048a5a5e33f7f",
-        "blockNumber": "481453923",
-        "emitter": "0x0132723E04DcCD4Fb58dABf7eaBE97e1419BfaEc",
+        "id": "16525483",
+        "hash": "0x9b87387e6b60de577fea8b97f7a38c306a4d8e25f4401c3941ff8ef4fc65d3b4",
+        "blockNumber": "481500348",
+        "emitter": "0x5263B80bA806631f95992e4A9E843a30B6BB7143",
         "topic": "0xe1377aa21d49fa10bb9ece6a0cd4f75597a90a80c3750f7f7674967f49ab9a62",
         "info": [
           {
@@ -85,8 +85,37 @@
             ],
             "origin": "0x0000000000000000000000000000000000000000",
             "caller": "0x0000000000000000000000000000000000000000",
-            "emitter": "0x0132723E04DcCD4Fb58dABf7eaBE97e1419BfaEc",
-            "handlerContractAddress": "0x5583F698872dfdf2073Afd06813d22FC6291d26A",
+            "emitter": "0x5263B80bA806631f95992e4A9E843a30B6BB7143",
+            "handlerContractAddress": "0xcEB971fdf1082E952DCBb41cAA6D69EB592dDf4b",
+            "handlerFunctionSelector": "0x53edf33d",
+            "priorityFeePerGas": "2000000000",
+            "maxFeePerGas": "20000000000",
+            "gasLimit": "10000000",
+            "isGuaranteed": false,
+            "isCoalesced": false
+          },
+          "0x8aeA55E869eab02A0a68D3172e85C5aeCEe8534D"
+        ]
+      },
+      {
+        "kind": "successor",
+        "id": "16525486",
+        "hash": "0x13b4d7dce9ef4bbac6255f407114bda872f5094d920a5b15c7ddfeeb55c6c6ea",
+        "blockNumber": "481500359",
+        "emitter": "0x94D963B6670AB96E78C8d0C46ca35D196d606EFE",
+        "topic": "0xcef65022605efd3d0e3c05c0a1b84d7ba9dfa8252f58a4f65867eb1ea3f6c300",
+        "info": [
+          {
+            "eventTopics": [
+              "0xcef65022605efd3d0e3c05c0a1b84d7ba9dfa8252f58a4f65867eb1ea3f6c300",
+              "0x0000000000000000000000000000000000000000000000000000000000000000",
+              "0x0000000000000000000000000000000000000000000000000000000000000000",
+              "0x0000000000000000000000000000000000000000000000000000000000000000"
+            ],
+            "origin": "0x0000000000000000000000000000000000000000",
+            "caller": "0x0000000000000000000000000000000000000000",
+            "emitter": "0x94D963B6670AB96E78C8d0C46ca35D196d606EFE",
+            "handlerContractAddress": "0xcEB971fdf1082E952DCBb41cAA6D69EB592dDf4b",
             "handlerFunctionSelector": "0x53edf33d",
             "priorityFeePerGas": "2000000000",
             "maxFeePerGas": "20000000000",
@@ -98,45 +127,199 @@
         ]
       }
     ],
-    "verifiedAt": "2026-09-06T18:15:48.663Z",
-    "evidence": "deployments/evidence/live-preparation.json"
+    "verifiedAt": "2026-09-06T19:33:13.322Z",
+    "evidence": "deployments/evidence/live-preparation-v2.json",
+    "manifest": {
+      "version": 1,
+      "name": "Live BTC BUY UP below 0.70",
+      "series": {
+        "asset": "BTC",
+        "intervalSec": 3600
+      },
+      "trigger": {
+        "type": "LAST_FILL_PRICE_BELOW",
+        "value": "0.700"
+      },
+      "action": {
+        "type": "BUY_UP",
+        "maxCollateral": "1",
+        "maxSlippageBps": 200
+      },
+      "resolution": {
+        "onWin": {
+          "rollPercent": 50
+        },
+        "onLoss": {
+          "incrementConsecutiveLosses": true
+        },
+        "onVoid": {
+          "treatAsLoss": false,
+          "treatAsWin": false
+        }
+      },
+      "policy": {
+        "maxTotalCapitalAtRisk": "2",
+        "maxRounds": 2,
+        "stopAfterConsecutiveLosses": 2,
+        "minSecondsToExpiry": 120
+      }
+    },
+    "replacedUnfilledStrategyId": "0x6f448fa61ef7c5fef6022d47a1bf01265d9cd337c956e163a4a09acd3e38cb98",
+    "revisionEvidence": "deployments/evidence/live-demo/fixture-revision.json"
   },
   "liveLifecycle": {
     "complete": false,
-    "callbackEvidence": null,
-    "orderEvidence": null,
+    "callbackEvidence": "0xfe816d6588142202de86143f2c23a00411b51c768df2d81d2a25ff52a67a37e4",
+    "orderEvidence": "0xb9561543c7839b00691ffd62e488a7e497bbefd56edda18f721ec20d37c15d91",
     "resolutionEvidence": null,
-    "reason": "BTC 15m series stalled; hourly lifecycle wait cancelled by user. Prepared strategy was not activated."
+    "reason": "Actual callback and automatic 1 tUSDC order filled 50 UP shares; awaiting live resolution and successor.",
+    "strategyId": "0x20844a8dbeb64ffcdcfaa1d1934b2228358f0cd515e1ec1ed732fc93a88f67f1",
+    "stage": "waiting for real market resolution",
+    "proof": "deployments/evidence/live-demo/proof.json"
   },
   "dreamDexBinaryPoolAuthorization": "not required for the linked smart-account direct order path",
   "previousDeployments": [
     {
       "network": "Somnia Shannon Testnet",
       "chainId": 50312,
-      "deployedAt": "2026-09-05",
+      "deployedAt": "2026-09-06T18:16:52.319Z",
       "admin": "0x8aeA55E869eab02A0a68D3172e85C5aeCEe8534D",
-      "engine": "0x2800e2e782eeeabbfad836c5aae08bdd81d3da1c",
-      "handler": "0xb0bf1191ebb20ac41f3e989bcae76057aae4260a",
-      "smartAccount": "0x9a20bf2c51451779ade86ff08265a450421e8cfd",
+      "engine": "0x6acee4da5be122dfbdfd97b62372b477cba0e87d",
+      "handler": "0x5583f698872dfdf2073afd06813d22fc6291d26a",
+      "smartAccount": "0xaffc595d553f940b12ac02059205ca3d39c4e0a8",
       "transactions": {
         "engine": {
-          "hash": "0x4ae152ab77ace0234051e47f298bb1e5233d2f13a70199e565e991ee7bfde93c",
-          "blockNumber": 480760825
+          "hash": "0x6f07d1030ab8090153d032759a4bb3145b595d4111d17b0aa09d9450ad58c22c",
+          "blockNumber": 481452272
         },
         "handler": {
-          "hash": "0xa3334db5aea658cda6e4907a935916ea7d03b6ac9debcdb68dede43ea5e71da3",
-          "blockNumber": 480760846
+          "hash": "0xa86c345142d3c8896e515316b81f8ae90961c7da098040c78e141ad6f1029081",
+          "blockNumber": 481452285
         },
         "wiring": {
-          "hash": "0x6349ce82eccd2ffe1de7034f3123199d28c697f82850c546327f3cad15175cd1",
-          "blockNumber": 480760857
+          "hash": "0xecc0377a9c57f8f757643c32b972ce234052ba278e9b5b165b8ccfa89637b8f9",
+          "blockNumber": 481452300
         },
         "smartAccount": {
-          "hash": "0x77b3c557d0dd0b69508842c38b262c97869a4268ed2f97938a59ac3d5e34e01d",
-          "blockNumber": 480761603
+          "hash": "0x82d0a7c62d356aecc7fcbb7ba71461f35852dd3ebb7201c5c484ef4e56866b8b",
+          "blockNumber": 481452882
         }
       },
-      "dreamDexBinaryPoolAuthorization": "pending"
+      "codeHashes": {
+        "engine": "0xdfa53e85c1d059f01a17d9b715bd9d68cffc75b66d37552bfe5786365bb13f8d",
+        "handler": "0xcc02aaccef4c98618e498169af078bf672577ab592fe9e7cb5a95a37b7ee9d83",
+        "smartAccount": "0x9a0de74c628ae131432332545d2c6de6cc2b911b06a5ff38b9689e4608bb332e"
+      },
+      "preparation": {
+        "strategyId": "0x6f448fa61ef7c5fef6022d47a1bf01265d9cd337c956e163a4a09acd3e38cb98",
+        "status": "VALIDATED \u2014 not activated",
+        "marketId": "0x0000000000000000000000000000000000000000000000000000000000015405",
+        "smartAccountBalance": "2000000",
+        "allowance": "1000000",
+        "allowanceSpender": "0x246a65643ad8b6C6Dbd0b017A259DA07681242FD",
+        "collateral": "0x70a86D8842FB63C4Ad2b7cdddF530eBf1BB25d8E",
+        "collateralDecimals": 6,
+        "subscriptions": [
+          {
+            "kind": "fill",
+            "id": "16512021",
+            "hash": "0x9f99d0e2c1eb17a2ca39210700a211f947b1af515216c552c2170267012f29b7",
+            "blockNumber": "481453902",
+            "emitter": "0x246a65643ad8b6C6Dbd0b017A259DA07681242FD",
+            "topic": "0xc87f4223e9e7c4e4f39f9b34fc9d64d78cdb95d9035b3748cbde59521261a399",
+            "info": [
+              {
+                "eventTopics": [
+                  "0xc87f4223e9e7c4e4f39f9b34fc9d64d78cdb95d9035b3748cbde59521261a399",
+                  "0x0000000000000000000000000000000000000000000000000000000000000000",
+                  "0x0000000000000000000000000000000000000000000000000000000000000000",
+                  "0x0000000000000000000000000000000000000000000000000000000000000000"
+                ],
+                "origin": "0x0000000000000000000000000000000000000000",
+                "caller": "0x0000000000000000000000000000000000000000",
+                "emitter": "0x246a65643ad8b6C6Dbd0b017A259DA07681242FD",
+                "handlerContractAddress": "0x5583F698872dfdf2073Afd06813d22FC6291d26A",
+                "handlerFunctionSelector": "0x53edf33d",
+                "priorityFeePerGas": "2000000000",
+                "maxFeePerGas": "20000000000",
+                "gasLimit": "10000000",
+                "isGuaranteed": false,
+                "isCoalesced": false
+              },
+              "0x8aeA55E869eab02A0a68D3172e85C5aeCEe8534D"
+            ]
+          },
+          {
+            "kind": "resolution",
+            "id": "16512029",
+            "hash": "0xe0b2cb9fc04fd8c7f8e87d2af91625181fc687537b6ab913bfb048a5a5e33f7f",
+            "blockNumber": "481453923",
+            "emitter": "0x0132723E04DcCD4Fb58dABf7eaBE97e1419BfaEc",
+            "topic": "0xe1377aa21d49fa10bb9ece6a0cd4f75597a90a80c3750f7f7674967f49ab9a62",
+            "info": [
+              {
+                "eventTopics": [
+                  "0xe1377aa21d49fa10bb9ece6a0cd4f75597a90a80c3750f7f7674967f49ab9a62",
+                  "0x0000000000000000000000000000000000000000000000000000000000000000",
+                  "0x0000000000000000000000000000000000000000000000000000000000000000",
+                  "0x0000000000000000000000000000000000000000000000000000000000000000"
+                ],
+                "origin": "0x0000000000000000000000000000000000000000",
+                "caller": "0x0000000000000000000000000000000000000000",
+                "emitter": "0x0132723E04DcCD4Fb58dABf7eaBE97e1419BfaEc",
+                "handlerContractAddress": "0x5583F698872dfdf2073Afd06813d22FC6291d26A",
+                "handlerFunctionSelector": "0x53edf33d",
+                "priorityFeePerGas": "2000000000",
+                "maxFeePerGas": "20000000000",
+                "gasLimit": "10000000",
+                "isGuaranteed": false,
+                "isCoalesced": false
+              },
+              "0x8aeA55E869eab02A0a68D3172e85C5aeCEe8534D"
+            ]
+          }
+        ],
+        "verifiedAt": "2026-09-06T18:15:48.663Z",
+        "evidence": "deployments/evidence/live-preparation.json"
+      },
+      "liveLifecycle": {
+        "complete": false,
+        "callbackEvidence": null,
+        "orderEvidence": null,
+        "resolutionEvidence": null,
+        "reason": "BTC 15m series stalled; hourly lifecycle wait cancelled by user. Prepared strategy was not activated."
+      },
+      "dreamDexBinaryPoolAuthorization": "not required for the linked smart-account direct order path",
+      "previousDeployments": [
+        {
+          "network": "Somnia Shannon Testnet",
+          "chainId": 50312,
+          "deployedAt": "2026-09-05",
+          "admin": "0x8aeA55E869eab02A0a68D3172e85C5aeCEe8534D",
+          "engine": "0x2800e2e782eeeabbfad836c5aae08bdd81d3da1c",
+          "handler": "0xb0bf1191ebb20ac41f3e989bcae76057aae4260a",
+          "smartAccount": "0x9a20bf2c51451779ade86ff08265a450421e8cfd",
+          "transactions": {
+            "engine": {
+              "hash": "0x4ae152ab77ace0234051e47f298bb1e5233d2f13a70199e565e991ee7bfde93c",
+              "blockNumber": 480760825
+            },
+            "handler": {
+              "hash": "0xa3334db5aea658cda6e4907a935916ea7d03b6ac9debcdb68dede43ea5e71da3",
+              "blockNumber": 480760846
+            },
+            "wiring": {
+              "hash": "0x6349ce82eccd2ffe1de7034f3123199d28c697f82850c546327f3cad15175cd1",
+              "blockNumber": 480760857
+            },
+            "smartAccount": {
+              "hash": "0x77b3c557d0dd0b69508842c38b262c97869a4268ed2f97938a59ac3d5e34e01d",
+              "blockNumber": 480761603
+            }
+          },
+          "dreamDexBinaryPoolAuthorization": "pending"
+        }
+      ]
     }
   ]
 }

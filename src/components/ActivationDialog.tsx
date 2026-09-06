@@ -16,7 +16,7 @@ interface ActivationDialogProps {
   wallet: WalletSnapshot
   onClose: () => void
   onActivity: (title: string, detail: string, kind: ActivityKind, hash?: Hex) => void
-  onActivated: (strategyId: Hex, subscriptionId: bigint) => void
+  onActivated: (strategyId: Hex, subscriptionId: bigint, details: {subscriptions:bigint[];blockNumber:bigint}) => void
 }
 
 type Progress = 'idle' | 'preparing' | 'creating' | 'configuring' | 'binding' | 'subscribing' | 'activating' | 'done'
@@ -167,16 +167,20 @@ export function ActivationDialog({
         onActivity('Reactivity subscribed', `Subscription #${subscribed.subscriptionId}`, 'reactivity', subscribed.hash)
       }
 
-      if (resolutionSubscriptionId === undefined) {
+      let currentResolutionId=resolutionSubscriptionId
+      let currentSuccessorId=successorSubscriptionId
+      if (currentResolutionId === undefined) {
         setProgress('subscribing')
         const subscribed = await actions.createSubscriptionTransaction(provider, wallet.address, latest.deployment, market, 'resolution')
+        currentResolutionId=subscribed.subscriptionId
         setResolutionSubscriptionId(subscribed.subscriptionId)
         onActivity('Resolution subscribed', `Subscription #${subscribed.subscriptionId}`, 'reactivity', subscribed.hash)
       }
 
-      if (successorSubscriptionId === undefined) {
+      if (currentSuccessorId === undefined) {
         setProgress('subscribing')
         const subscribed = await actions.createSubscriptionTransaction(provider,wallet.address,latest.deployment,market,'successor')
+        currentSuccessorId=subscribed.subscriptionId
         setSuccessorSubscriptionId(subscribed.subscriptionId)
         onActivity('Successor discovery subscribed',`Subscription #${subscribed.subscriptionId}`,'reactivity',subscribed.hash)
       }
@@ -191,7 +195,7 @@ export function ActivationDialog({
       )
       onActivity('Strategy armed', `CircuitEngine confirmed at block ${armed.blockNumber}`, 'success', armed.hash)
       setProgress('done')
-      onActivated(currentStrategyId, currentSubscriptionId)
+      onActivated(currentStrategyId, currentSubscriptionId, {subscriptions:[currentSubscriptionId,currentResolutionId,currentSuccessorId],blockNumber:armed.blockNumber})
     } catch (cause) {
       setProgress('idle')
       setError(walletErrorMessage(cause))
@@ -253,7 +257,7 @@ export function ActivationDialog({
 
       <div className="activation-disclosure">
         <LockKeyhole size={15} />
-        <p><strong>Explicit wallet confirmations</strong><span>Prepare collateral if needed, create the strategy, link the account, bind the market, create Reactivity, then arm. The account remains user-owned and the Engine is restricted to direct BinaryPool placement.</span></p>
+        <p><strong>Explicit wallet confirmations</strong><span>Prepare collateral if needed, create the strategy, link the account, bind the market, create Reactivity, then arm. The account remains user-owned. The Engine can place bounded orders, redeem tracked positions and approve authorized successor pools.</span></p>
       </div>
 
       {error && <div className="activation-error"><CircleAlert size={15} /><span>{error}</span></div>}

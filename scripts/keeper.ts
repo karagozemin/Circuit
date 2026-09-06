@@ -1,3 +1,4 @@
+import { normalizeSubscriptionInfo } from '../src/lib/contracts/subscription-info'
 import { appendFile, mkdir, readFile, writeFile } from 'node:fs/promises'
 import { SDK, SomniaReactivityPrecompileABI } from '@somnia-chain/reactivity'
 import { binaryModuleReadAbi } from '@somnia-chain/markets-sdk'
@@ -60,8 +61,8 @@ async function subscribe(emitter:Address, topic:Hex) {
   const key = `${emitter.toLowerCase()}:${topic}`
   const saved = subscriptions[key]
   if (saved) {
-    const info = await sdk.getSubscriptionInfo(BigInt(saved.id))
-    if (!(info instanceof Error) && info.subscriptionData.handlerContractAddress.toLowerCase() === handlerAddress.toLowerCase()) return
+    const info = normalizeSubscriptionInfo(await sdk.getSubscriptionInfo(BigInt(saved.id)))
+    if (info.subscriptionData.handlerContractAddress.toLowerCase() === handlerAddress.toLowerCase() && info.subscriptionData.emitter.toLowerCase() === emitter.toLowerCase() && info.subscriptionData.eventTopics[0] === topic) return
     throw new Error(`Subscription ${saved.id} unavailable; inspect before replacing it.`)
   }
   if (!execute) { await record('dry-run-subscription',{emitter,topic}); return }

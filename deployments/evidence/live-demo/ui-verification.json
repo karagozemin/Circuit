@@ -1,0 +1,12 @@
+{
+  "at": "2026-09-06T19:47:14.498Z",
+  "realChain": true,
+  "strategyId": "0x20844a8dbeb64ffcdcfaa1d1934b2228358f0cd515e1ec1ed732fc93a88f67f1",
+  "checks": [
+    "public saved session restored against real owner and manifest hash",
+    "actual WAITING_RESOLUTION displayed",
+    "all three subscriptions read without SDK shape errors",
+    "page reload recovers strategy",
+    "no browser runtime errors"
+  ]
+}

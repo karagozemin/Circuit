@@ -1,3 +1,4 @@
+import { LIVE_SESSION_KEY, parseLiveSession } from './lib/contracts/live-session'
 import { useEffect, useMemo, useState } from 'react'
 import { Activity, ArrowDownToLine, ArrowUpFromLine, Bot, Check, ChevronRight, CircleHelp, Clock3, Code2, Copy, ExternalLink, Layers3, Link2, LockKeyhole, LogOut, Pause, Play, Plus, RefreshCw, ShieldCheck, SlidersHorizontal, Sparkles, Wallet, X } from 'lucide-react'
 import { formatUnits, type Hex } from 'viem'
@@ -32,6 +33,8 @@ function App() {
   const [activationOpen, setActivationOpen] = useState(false)
   const [strategyId, setStrategyId] = useState<Hex>()
   const [subscriptionId, setSubscriptionId] = useState<bigint>()
+  const [liveSubscriptions,setLiveSubscriptions]=useState<bigint[]>([])
+  const [eventStartBlock,setEventStartBlock]=useState<bigint>()
   const [controlBusy, setControlBusy] = useState(false)
   const [sdkOrderBusy, setSdkOrderBusy] = useState(false)
   const [armedManifest, setArmedManifest] = useState<StrategyManifest>()
@@ -44,11 +47,31 @@ function App() {
   const strategyIsActive = activeStatuses.has(status)
 
   useEffect(() => {
+    let disposed=false
+    void (async()=>{
+      const saved=parseLiveSession(localStorage.getItem(LIVE_SESSION_KEY))
+      if(!saved)return
+      const {configuredDeployment}=await import('./lib/contracts/activation')
+      const deployment=configuredDeployment()
+      if(!deployment || deployment.engine.toLowerCase()!==saved.engine.toLowerCase())return
+      const {readStrategyState}=await import('./lib/contracts/monitor')
+      const {runtime}=await readStrategyState(deployment.engine,saved.strategyId)
+      if(disposed)return
+      if(runtime.owner.toLowerCase()!==saved.owner.toLowerCase() || runtime.manifestHash!==manifestHash(saved.manifest))throw new Error('Saved strategy does not match its on-chain owner and manifest.')
+      setManifest(saved.manifest);setArmedManifest(saved.manifest)
+      setLiveSubscriptions(saved.subscriptions.map(BigInt));setSubscriptionId(BigInt(saved.subscriptions[0]))
+      setEventStartBlock(BigInt(saved.fromBlock));setStrategyId(saved.strategyId);setActiveTab('live')
+      setNotice('Saved strategy recovered and verified on-chain.')
+    })().catch(error=>{if(!disposed)setNotice(walletErrorMessage(error))})
+    return ()=>{disposed=true}
+  }, [])
+
+  useEffect(() => {
     if (!strategyId) return
     const statuses: Status[] = ['DRAFT','VALIDATED','ARMED','TRIGGERED','ORDER_SUBMITTED','WAITING_RESOLUTION','ROLLING','PAUSED','STOPPED','CANCELLED']
     let disposed = false
     let reading = false
-    let cursor: bigint | undefined
+    let cursor: bigint | undefined = eventStartBlock
     const refresh = async () => {
       if (reading) return
       reading = true
@@ -61,15 +84,18 @@ function App() {
         if (disposed) return
         setStatus(statuses[runtime.status])
         setLiveMetrics({round:runtime.round,capital:runtime.cumulativeCapitalUsed,losses:runtime.consecutiveLosses})
+        if(cursor!==undefined && blockNumber>40000n && cursor<blockNumber-40000n)cursor=blockNumber-40000n
         if (cursor !== undefined && cursor <= blockNumber) {
           const events = await monitor.readStrategyEvents(deployment.engine,strategyId,cursor,blockNumber)
           if (!disposed) setActivity(previous => [...events.map(event => ({time:now(),title:event.eventName,detail:JSON.stringify(event.args,(_,v)=>typeof v === 'bigint' ? v.toString():v),kind:'system' as const,hash:event.transactionHash})),...previous])
         }
         cursor = blockNumber + 1n
-        if (subscriptionId !== undefined) {
-          const health = await monitor.readAutomationHealth(subscriptionId,deployment.handler)
-          if (!disposed) setAutomationHealth(health.detail)
-        }
+        const subscriptionChecks=liveSubscriptions.length?liveSubscriptions:subscriptionId!==undefined?[subscriptionId]:[]
+        const [health,execution]=await Promise.all([
+          Promise.all(subscriptionChecks.map(id=>monitor.readAutomationHealth(id,deployment.handler))),
+          monitor.readExecutionHealth(runtime),
+        ])
+        if(!disposed)setAutomationHealth([...health.filter(item=>!item.healthy).map(item=>item.detail),...(health.length && health.every(item=>item.healthy)?['Reactivity subscriptions funded.']:[]),execution].filter(Boolean).join(' '))
       } catch (error) {
         if (!disposed) setAutomationHealth(`Live verification unavailable: ${walletErrorMessage(error)}`)
       } finally { reading = false }
@@ -77,7 +103,7 @@ function App() {
     void refresh()
     const timer = window.setInterval(() => void refresh(),5000)
     return () => {disposed = true;window.clearInterval(timer)}
-  }, [strategyId, subscriptionId])
+  }, [strategyId, subscriptionId, liveSubscriptions, eventStartBlock])
 
   useEffect(() => {
     let cancelled = false
@@ -300,7 +326,7 @@ function App() {
     </header>
     <div className="workspace">
       <aside className="sidebar"><div className="eyebrow">CONTROL ROOM</div><nav><button className="nav-item active"><Layers3 size={17} /> Strategies <span className="nav-count">1</span></button><button className="nav-item"><Activity size={17} /> Activity</button></nav><div className="sidebar-divider" /><div className="eyebrow">ENVIRONMENT</div><div className="side-status"><span className={`status-dot ${marketHealth.state === 'live' ? 'green' : marketHealth.state === 'error' ? 'amber' : ''}`} /><div><strong>{marketHealth.state === 'live' ? 'Live market verified' : marketHealth.state === 'error' ? 'Market unavailable' : 'Checking chain truth'}</strong><small>{marketHealth.market ? `Block ${marketHealth.market.blockNumber.toString()} · ${marketHealth.market.marketId.slice(-6)}` : marketHealth.state === 'error' ? 'Activation safely blocked' : 'RPC · dreamDEX indexer'}</small></div></div><div className="sidebar-footer"><LockKeyhole size={14} /> Non-custodial by design</div></aside>
-      <main className="main"><div className="page-header"><div><div className="breadcrumb">STRATEGIES <ChevronRight size={14} /> NEW STRATEGY</div><h1>Build a strategy<span className="period">.</span></h1><p>Programmable rules for dreamDEX Event Contracts.</p></div><div className="header-actions"><button className="ghost-button" onClick={() => { setManifest(initialManifest); setStatus('DRAFT'); setStrategyId(undefined); setSubscriptionId(undefined); setArmedManifest(undefined); setSdkCapitalUsed(0); setNotice('Draft reset.') }}><RefreshCw size={15} /> Reset</button><button className="primary-button" onClick={activate}><Play size={15} fill="currentColor" /> Activate</button></div></div>
+      <main className="main"><div className="page-header"><div><div className="breadcrumb">STRATEGIES <ChevronRight size={14} /> NEW STRATEGY</div><h1>Build a strategy<span className="period">.</span></h1><p>Programmable rules for dreamDEX Event Contracts.</p></div><div className="header-actions"><button className="ghost-button" disabled={strategyIsActive} onClick={() => { localStorage.removeItem(LIVE_SESSION_KEY); setLiveSubscriptions([]); setEventStartBlock(undefined); setManifest(initialManifest); setStatus('DRAFT'); setStrategyId(undefined); setSubscriptionId(undefined); setArmedManifest(undefined); setSdkCapitalUsed(0); setNotice('Draft reset.') }}><RefreshCw size={15} /> Reset</button><button className="primary-button" onClick={activate}><Play size={15} fill="currentColor" /> Activate</button></div></div>
         <div className="tabs"><button className={activeTab === 'builder' ? 'tab active' : 'tab'} onClick={() => setActiveTab('builder')}><SlidersHorizontal size={15} /> Builder</button><button className={activeTab === 'live' ? 'tab active' : 'tab'} onClick={() => setActiveTab('live')}><Activity size={15} /> Live activity {status !== 'DRAFT' && <span className="tab-live" />}</button><div className="tab-status"><span className={`status-pill ${status.toLowerCase()}`}><span /> {status.replace('_', ' ')}</span></div></div>
         {notice && <div className="notice"><Sparkles size={15} /><span>{notice}</span><button onClick={() => setNotice('')}><X size={14} /></button></div>}
         {activeTab === 'builder' ? <div className="builder-grid"><section className="builder-canvas"><div className="section-heading"><div><span className="section-kicker">STRATEGY GRAPH</span><h2>{manifest.name}</h2></div><button className="small-button" title="Copy manifest" onClick={() => navigator.clipboard?.writeText(canonicalManifest(manifest))}><Copy size={14} /> JSON</button></div><div className="graph"><div className="graph-line" /><div className="node start"><div className="node-icon blue"><Clock3 size={16} /></div><div><span className="node-label">MARKET</span><strong>{manifest.series.asset} · {manifest.series.intervalSec === 900 ? '15m' : '1h'}</strong><small>{marketHealth.market ? `live · ${Math.floor(marketHealth.market.secondsToExpiry / 60)}m left · UP ${marketHealth.market.bestYesBid ?? '—'} / ${marketHealth.market.bestYesAsk ?? '—'}` : marketHealth.state === 'error' ? 'no eligible on-chain market' : 'resolving live window…'}</small></div>{marketHealth.state === 'live' && <Check size={15} className="node-check" />}</div><div className="connector"><span>WHEN</span></div><div className="node condition"><div className="node-icon amber"><Activity size={16} /></div><div><span className="node-label">TRIGGER</span><strong>UP last fill <em>{manifest.trigger.type === 'LAST_FILL_PRICE_ABOVE' ? '>' : '<'} {manifest.trigger.value}</em></strong><small>on-chain OrderFilled event</small></div><span className="yes-chip">YES</span></div><div className="connector"><span>THEN</span></div><div className="node action"><div className="node-icon red"><ArrowDownToLine size={16} /></div><div><span className="node-label">ACTION</span><strong>{manifest.action.type === 'BUY_DOWN' ? 'BUY DOWN' : 'BUY UP'} <em>· max {manifest.action.maxCollateral}</em></strong><small>IOC · {manifest.action.maxSlippageBps} bps max slippage</small></div><Check size={15} className="node-check" /></div><div className="connector split"><span>ON RESOLUTION</span></div><div className="branch-grid"><div className="branch win"><div className="branch-title"><span className="branch-dot" /> WIN</div><strong>ROLL {manifest.resolution.onWin.rollPercent}%</strong><small>realized proceeds only</small><div className="branch-arrow">↘</div></div><div className="branch loss"><div className="branch-title"><span className="branch-dot" /> LOSS</div><strong>LOSSES + 1</strong><small>stop at {manifest.policy.stopAfterConsecutiveLosses}</small><div className="branch-arrow">↙</div></div></div><div className="merge-connector" /><div className="node next"><div className="node-icon green"><ArrowUpFromLine size={16} /></div><div><span className="node-label">CONTINUE</span><strong>NEXT WINDOW</strong><small>re-resolve live market binding</small></div><Check size={15} className="node-check" /></div></div><div className="graph-footer"><span><span className="legend-dot green" /> deterministic</span><span><span className="legend-dot amber" /> event-driven</span><span><LockKeyhole size={12} /> no arbitrary calls</span></div></section>
@@ -315,14 +341,20 @@ function App() {
       wallet={walletState.snapshot}
       onClose={() => setActivationOpen(false)}
       onActivity={(title, detail, kind, hash) => appendActivity({ time: now(), title, detail, kind, hash })}
-      onActivated={(nextStrategyId, nextSubscriptionId) => {
+      onActivated={(nextStrategyId, nextSubscriptionId, details) => {
+        setLiveSubscriptions(details.subscriptions)
+        setEventStartBlock(details.blockNumber)
+        void import('./lib/contracts/activation').then(({configuredDeployment})=>{
+          const deployment=configuredDeployment()
+          if(deployment && walletState.snapshot)localStorage.setItem(LIVE_SESSION_KEY,JSON.stringify({chainId:50312,engine:deployment.engine,owner:walletState.snapshot.address,strategyId:nextStrategyId,manifest,subscriptions:details.subscriptions.map(String),fromBlock:details.blockNumber.toString()}))
+        }).catch(()=>setNotice('Strategy activated; browser recovery could not be saved. Keep the strategy ID.'))
         setStrategyId(nextStrategyId)
         setSubscriptionId(nextSubscriptionId)
         setArmedManifest(manifest)
         setSdkCapitalUsed(0)
         setStatus('ARMED')
         setActiveTab('live')
-        setNotice('Strategy is armed on-chain. Live execution is ready through the wallet-signed market-sdk path.')
+        setNotice('Strategy is armed on-chain. The configured keeper can execute within the approved limits.')
         setActivationOpen(false)
       }}
     />}
