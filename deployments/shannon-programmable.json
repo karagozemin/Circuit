@@ -1,0 +1,56 @@
+{
+  "network": "Somnia Shannon Testnet",
+  "chainId": 50312,
+  "admin": "0x8aeA55E869eab02A0a68D3172e85C5aeCEe8534D",
+  "startedAt": "2026-09-07T12:44:37.140Z",
+  "sourceCommit": "5405aabb66f977dfc7dab730958d917324453ec9",
+  "engineCreationCodeHash": "0x78e85f9be31045a316caa1de7babd2456fb41d0aa962db73d125eae8b870e0ff",
+  "transactions": {
+    "engine": {
+      "hash": "0x0218a30ff1a3e108479663981964f364d821d91380b0b3dc2a34723a95deb148",
+      "blockNumber": 482119116,
+      "status": "success",
+      "gasUsed": "69528449",
+      "gasCostSTT": "0.417170694"
+    },
+    "handler": {
+      "hash": "0x4656d4a03353a5bbfc9f1578cb107bd25b96cba51bb58abb00fb94ee26b96b92",
+      "blockNumber": 482119127,
+      "status": "success",
+      "gasUsed": "21841419",
+      "gasCostSTT": "0.131048514"
+    },
+    "wiring": {
+      "hash": "0x2c4d7d290825ac0717867bc27d1b3d1793c273961e25c42111b37deffede7f2c",
+      "blockNumber": 482119137,
+      "status": "success",
+      "gasUsed": "46059",
+      "gasCostSTT": "0.000276354"
+    },
+    "smartAccount": {
+      "hash": "0x66f78d9c89ebe40e664a3da499be8225d9914a5a3b83b216244ded5d13638c42",
+      "blockNumber": 482119148,
+      "status": "success",
+      "gasUsed": "9012722",
+      "gasCostSTT": "0.054076332"
+    }
+  },
+  "previousDeployment": "deployments/shannon-combined-setup.json",
+  "engine": "0xa60f9fd2c7da79c96f62e5656e349a9d760821fb",
+  "handler": "0x3ce25c45a6616d72cc15fed724ca5d3e620aca6a",
+  "smartAccount": "0x9f66a4ede986180fe69debc671ff0cbd0a6156c5",
+  "codeHashes": {
+    "engine": "0x7ac6902da756bd31f6dd2c6672e02b280597f1e76b4241c51c2840336a7488da",
+    "handler": "0x8945738ce74f71b3544c751e83190447f65a2c94a954a7a160bd29f2b31b4a48",
+    "smartAccount": "0x9617cd0955d21098ca48af8e1306eb888b9651a9182c5bedd8d82c25c2f105f0"
+  },
+  "verifiedAt": "2026-09-07T12:44:48.103Z",
+  "activationSetupVersion": 1,
+  "ladderSetupVersion": 1,
+  "activationTransactions": 5,
+  "smartAccountPrepared": false,
+  "liveLifecycle": {
+    "complete": false,
+    "reason": "Ladder-capable deployment and wiring verified; no strategy, subscriptions or orders created for this deployment."
+  }
+}

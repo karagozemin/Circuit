@@ -18,7 +18,7 @@ The visual editor supports adding, removing, moving and connecting **MARKET → 
 
 The intent assistant proposes rules without predictions or invented limits. Activity shows state, exposure limits, last/next actions and an execution checklist backed by real event receipts and subscription reads.
 
-**Release boundary:** Ladder requires deploying the updated Engine, handler and linked smart account. The existing live deployment does not support it; activation preflight blocks it explicitly. Historical live evidence below is not a new Ladder run.
+**Deployment:** The [Ladder-capable Engine, handler and linked smart account](deployments/shannon-programmable.json) are deployed and verified on Shannon. Update the three public frontend addresses to use this deployment. Initial account preparation is still required. Ladder has local execution tests; historical live evidence below is not a Ladder run.
 
 [Programmable P0 acceptance](docs/PROGRAMMABLE_P0.md) · [Jury demo script](docs/DEMO_SCRIPT.md)
 
@@ -127,7 +127,7 @@ The reduced flow requires deploying the updated Engine and handler and a smart a
 
 The activation flow checks ownership, deployment wiring, market status, expiry buffer and the configured **32 STT** subscription-owner minimum. Initial preparation funds one maximum order; fund the account for additional rounds when needed. The keeper does not faucet or transfer funds automatically.
 
-The [combined-setup deployment](deployments/shannon-combined-setup.json) is live on Shannon and verified to support 5 activation transactions. Its new smart account still needs initial collateral preparation. The [recorded demo deployment](deployments/shannon.json) retains the earlier lifecycle evidence. Both accounts belong to their recorded owner; another connected wallet cannot operate them.
+The [current programmable deployment](deployments/shannon-programmable.json) supports all three programs and 5 activation transactions. Its new smart account needs initial collateral preparation. The [previous combined-setup deployment](deployments/shannon-combined-setup.json) and [recorded demo deployment](deployments/shannon.json) retain their history. The accounts belong to their recorded owner; another connected wallet cannot operate them.
 
 The workspace tracks one live circuit at a time. To replace it, open **Manage current circuit** from draft review. **End circuit** requires a paused circuit with no tracked position and a separate wallet confirmation; the browser rechecks that state before requesting cancellation. Open positions must settle first. On the current deployment, ending does not release the old market window binding, so choose another available asset/window before activating the next draft. Ending also leaves existing subscriptions and account funds in place.
 
