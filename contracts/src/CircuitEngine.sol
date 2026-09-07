@@ -129,6 +129,9 @@ contract CircuitEngine is ICircuitEngine {
     address public reactivityHandler;
     uint256 private entered;
     mapping(bytes32 => address) public seriesCreators;
+    struct LadderSizing { uint256 increment; bool enabled; }
+    mapping(bytes32 => LadderSizing) public ladderSizing;
+    event LadderConfigured(bytes32 indexed strategyId, uint256 initialCollateral, uint256 incrementCollateral);
     mapping(bytes32 => bool) public automaticRollover;
     event AutomaticRolloverUpdated(bytes32 indexed strategyId, bool enabled);
     mapping(address owner => uint256 nonce) public ownerNonces;
@@ -241,7 +244,7 @@ contract CircuitEngine is ICircuitEngine {
         address executionAccount,
         bytes32 marketId,
         bool enableRollover
-    ) external returns (bytes32 strategyId) {
+    ) public returns (bytes32 strategyId) {
         if (executionAccount == address(0)) revert InvalidExecutionAccount();
         strategyId = createStrategy(manifestHash, config);
         setExecutionAccount(strategyId, executionAccount);
@@ -251,6 +254,21 @@ contract CircuitEngine is ICircuitEngine {
         uint256 outcomeId = config.actionType == ActionType.BUY_UP ? market.yesId() : market.noId();
         _bindMarket(strategyId, marketId, record.market, record.pool, record.collateral, market.outcomeToken(), outcomeId);
         setAutomaticRollover(strategyId, enableRollover);
+    }
+
+    function ladderSetupVersion() external pure returns (uint256) { return 1; }
+
+    function createConfiguredLadderStrategy(
+        bytes32 manifestHash, StrategyConfig calldata config, address executionAccount,
+        bytes32 marketId, uint256 initialCollateral, uint256 incrementCollateral
+    ) external returns (bytes32 strategyId) {
+        if (initialCollateral == 0 || initialCollateral > config.maxOrderCollateral
+            || incrementCollateral == 0 || incrementCollateral > config.maxOrderCollateral
+            || config.stopAfterLosses != 1) revert InvalidPolicy();
+        strategyId = createConfiguredStrategy(manifestHash, config, executionAccount, marketId, true);
+        ladderSizing[strategyId] = LadderSizing(incrementCollateral, true);
+        runtimes[strategyId].nextOrderBudget = initialCollateral;
+        emit LadderConfigured(strategyId, initialCollateral, incrementCollateral);
     }
 
     function bindMarket(
@@ -544,6 +562,11 @@ contract CircuitEngine is ICircuitEngine {
         uint256 remainingCap = config.maxTotalCapitalAtRisk - runtime.cumulativeCapitalUsed;
         uint256 desiredBudget =
             result == RoundResult.WIN ? realizedProceeds * config.rollPercentBps / BPS : config.maxOrderCollateral;
+        LadderSizing memory ladder = ladderSizing[strategyId];
+        if (ladder.enabled) {
+            // Only a settled win advances the ladder. Voids and skipped windows keep its rung.
+            desiredBudget = runtime.nextOrderBudget + (result == RoundResult.WIN ? ladder.increment : 0);
+        }
         runtime.nextOrderBudget = _min(desiredBudget, _min(config.maxOrderCollateral, remainingCap));
         if (runtime.nextOrderBudget == 0) {
             _stop(strategyId, runtime, StopReason.ZERO_ROLLOVER);

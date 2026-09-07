@@ -274,6 +274,129 @@ contract CircuitEngineTest {
         require(boundId == strategyId, "existing binding overwritten");
     }
 
+    function _startLadder(uint16 rounds, uint256 cap) private {
+        _clearBindings();
+        CircuitEngine.StrategyConfig memory config = _config();
+        config.stopAfterLosses = 1;
+        config.maxRounds = rounds;
+        config.maxTotalCapitalAtRisk = cap;
+        CircuitSmartAccount account = new CircuitSmartAccount(address(this), address(engine));
+        collateral.setBalance(address(account), 100_000_000);
+        strategyId = engine.createConfiguredLadderStrategy(MANIFEST_HASH, config, address(account), MARKET_ID, 5_000_000, 2_500_000);
+        engine.activateStrategy(strategyId);
+    }
+
+    function _ladderSettlement(uint8 status, uint256 winner) private {
+        (, CircuitEngine.StrategyRuntime memory runtime) = engine.getStrategy(strategyId);
+        uint256 budget = runtime.nextOrderBudget;
+        pool.configure(budget, budget * 4, true);
+        _trigger(keccak256(abi.encode(runtime.round, "ladder")));
+        engine.executeReadyAction(strategyId, 750_000, budget * 4);
+        market.setWinner(winner);
+        market.setStatus(status);
+        engine.syncStrategy(strategyId, runtime.currentMarketId);
+    }
+
+    function _advanceLadder() private {
+        uint64 expiry = market.expiry();
+        vm.warp(expiry);
+        pool = new MockBinaryPool(collateral, outcome);
+        market = new MockBinaryMarket(address(pool), address(collateral), address(outcome), expiry + 900);
+        module.useMarket(market);
+        engine.bindMarket(strategyId, bytes32(uint256(expiry)), address(market), address(pool), address(collateral), address(outcome), 2);
+    }
+
+    function testLadderFiveSevenPointFiveTenThenRoundStop() public {
+        _startLadder(3, 25_000_000);
+        (, CircuitEngine.StrategyRuntime memory runtime) = engine.getStrategy(strategyId);
+        require(runtime.nextOrderBudget == 5_000_000, "initial rung");
+        _ladderSettlement(4, 1);
+        (, runtime) = engine.getStrategy(strategyId);
+        require(runtime.nextOrderBudget == 7_500_000, "second rung");
+        _advanceLadder();
+        _ladderSettlement(4, 1);
+        (, runtime) = engine.getStrategy(strategyId);
+        require(runtime.nextOrderBudget == 10_000_000, "third rung");
+        _advanceLadder();
+        _ladderSettlement(4, 1);
+        (, runtime) = engine.getStrategy(strategyId);
+        require(runtime.status == CircuitEngine.StrategyStatus.STOPPED && runtime.round == 3, "round stop");
+        require(runtime.cumulativeCapitalUsed == 22_500_000, "actual spend");
+    }
+
+    function testLadderFirstLossStops() public {
+        _startLadder(5, 25_000_000);
+        _ladderSettlement(4, 0);
+        (, CircuitEngine.StrategyRuntime memory runtime) = engine.getStrategy(strategyId);
+        require(runtime.status == CircuitEngine.StrategyStatus.STOPPED && runtime.consecutiveLosses == 1, "loss did not stop");
+    }
+
+    function testLadderCapClipsNextRungAndStops() public {
+        _startLadder(5, 12_000_000);
+        _ladderSettlement(4, 1);
+        (, CircuitEngine.StrategyRuntime memory runtime) = engine.getStrategy(strategyId);
+        require(runtime.nextOrderBudget == 7_000_000, "remaining cap not enforced");
+        _advanceLadder();
+        _ladderSettlement(4, 1);
+        (, runtime) = engine.getStrategy(strategyId);
+        require(runtime.status == CircuitEngine.StrategyStatus.STOPPED && runtime.cumulativeCapitalUsed == 12_000_000, "cap stop");
+    }
+
+    function testLadderVoidPreservesRungAndLossCount() public {
+        _startLadder(5, 25_000_000);
+        _ladderSettlement(5, 0);
+        (, CircuitEngine.StrategyRuntime memory runtime) = engine.getStrategy(strategyId);
+        require(runtime.nextOrderBudget == 5_000_000 && runtime.consecutiveLosses == 0, "void advanced ladder");
+    }
+
+    function testLadderRejectsInvalidSizingAndLossRule() public {
+        CircuitEngine.StrategyConfig memory config = _config();
+        vm.expectRevert(CircuitEngine.InvalidPolicy.selector);
+        engine.createConfiguredLadderStrategy(MANIFEST_HASH, config, address(1), MARKET_ID, 5_000_000, 2_500_000);
+        config.stopAfterLosses = 1;
+        vm.expectRevert(CircuitEngine.InvalidPolicy.selector);
+        engine.createConfiguredLadderStrategy(MANIFEST_HASH, config, address(1), MARKET_ID, 11_000_000, 2_500_000);
+        vm.expectRevert(CircuitEngine.InvalidPolicy.selector);
+        engine.createConfiguredLadderStrategy(MANIFEST_HASH, config, address(1), MARKET_ID, 5_000_000, 0);
+    }
+
+    function testBoundedStreakProgramUsesRedeemedWinsAndStopsAtFirstLoss() public {
+        _clearBindings();
+        CircuitEngine.StrategyConfig memory config = _config();
+        config.actionType = CircuitEngine.ActionType.BUY_UP;
+        config.triggerValue = 600_000;
+        config.maxOrderCollateral = 3_000_000;
+        config.maxTotalCapitalAtRisk = 12_000_000;
+        config.maxRounds = 4;
+        config.stopAfterLosses = 1;
+        config.maxSlippageBps = 100;
+        CircuitSmartAccount account = new CircuitSmartAccount(address(this), address(engine));
+        collateral.setBalance(address(account), 100_000_000);
+        strategyId = engine.createConfiguredStrategy(MANIFEST_HASH, config, address(account), MARKET_ID, true);
+        engine.activateStrategy(strategyId);
+        pool.configure(3_000_000, 4_000_000, true);
+        _trigger(bytes32(uint256(9901)));
+        engine.executeReadyAction(strategyId, 750_000, 4_000_000);
+        market.setWinner(0); market.setStatus(4);
+        engine.syncStrategy(strategyId, MARKET_ID);
+        (, CircuitEngine.StrategyRuntime memory runtime) = engine.getStrategy(strategyId);
+        require(runtime.nextOrderBudget == 2_000_000, "streak must roll half of actual proceeds");
+        uint64 expiry = market.expiry();
+        vm.warp(expiry);
+        pool = new MockBinaryPool(collateral, outcome);
+        market = new MockBinaryMarket(address(pool), address(collateral), address(outcome), expiry + 900);
+        module.useMarket(market);
+        bytes32 nextId = bytes32(uint256(9902));
+        engine.bindMarket(strategyId, nextId, address(market), address(pool), address(collateral), address(outcome), 1);
+        pool.configure(1_500_000, 2_000_000, true);
+        _trigger(bytes32(uint256(9903)));
+        engine.executeReadyAction(strategyId, 750_000, 2_000_000);
+        market.setWinner(1); market.setStatus(4);
+        engine.syncStrategy(strategyId, nextId);
+        (, runtime) = engine.getStrategy(strategyId);
+        require(runtime.status == CircuitEngine.StrategyStatus.STOPPED && runtime.consecutiveLosses == 1, "streak first loss stop");
+    }
+
     function testValidatedStrategyExecutesFromActualBalanceDeltas() public {
         _trigger(bytes32(uint256(1)));
         (uint128 orderId, uint256 used, uint256 received) = engine.executeReadyAction(strategyId, 745_000, 10_000_000);

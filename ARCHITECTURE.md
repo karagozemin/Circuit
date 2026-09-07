@@ -317,3 +317,8 @@ There are three distinct verification layers:
 The real proof does not establish live winning redemption or void behavior. Those paths have local coverage. The [acceptance report](docs/ACCEPTANCE.md) also tracks the outstanding Somnia Agent integration, live market availability, UX validation and service-enrollment work.
 
 For deployment commands and configuration, return to the [README](README.md#run-locally). For operation and incident recovery, use the [keeper runbook](docs/AUTOMATION.md). Product requirements remain in the [locked PRD](Circuit_PRD_v1.0_LOCKED.md).
+
+
+## Graph compiler and bounded ladder extension
+
+The editable graph document and compiler live in `src/lib/graph.ts`. The compiler validates the supported typed ports before producing the exact Strategy Manifest; rule/edge changes invalidate its compilation key. Layout is not part of that key. Optional `action.sizing` describes a WIN_LADDER with explicit initial and increment collateral. A ladder-aware Engine stores this separately from the existing StrategyConfig ABI, initializes it during atomic setup, increases only after WIN, and applies the same order, lifetime capital and round limits. First-loss stopping is mandatory. Existing deployments without `ladderSetupVersion()` are blocked from ladder activation. See [programmable P0 acceptance](docs/PROGRAMMABLE_P0.md) for the complete grammar, evidence rules and deployment boundary.

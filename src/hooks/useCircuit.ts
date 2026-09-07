@@ -9,7 +9,7 @@ import type { StrategyManifest } from '../lib/strategy'
 import { endCircuitBlocker } from '../lib/contracts/circuit-controls'
 import { MarketDiscoveryError } from '../lib/dreamdex/discovery-error'
 
-export interface ActivityEntry {id:string;at:string;title:string;detail:string;kind:'system'|'trade'|'reactivity'|'success'|'error';hash?:Hex}
+export interface ActivityEntry {id:string;at:string;title:string;detail:string;kind:'system'|'trade'|'reactivity'|'success'|'error';hash?:Hex;eventName?:string;strategyId?:Hex;eventArgs?:Record<string,unknown>}
 export interface Runtime {owner:Address;manifestHash:Hex;status:number;round:number;currentMarketId:Hex;currentMarket:Address;currentPool:Address;collateral:Address;executionAccount:Address;currentPositionSize:bigint;nextOrderBudget:bigint;cumulativeCapitalUsed:bigint;consecutiveLosses:number}
 export type Notice={id:number;message:string;tone:'success'|'error'|'info'}
 export function useCircuit(){
@@ -22,6 +22,7 @@ export function useCircuit(){
  const [verifiedAt,setVerifiedAt]=useState<string>()
  const [block,setBlock]=useState<bigint>()
  const [health,setHealth]=useState('')
+ const [subscriptionProofs,setSubscriptionProofs]=useState<{id:string;healthy:boolean;detail:string;emitter:string}[]>([])
  const [activity,setActivity]=useState<ActivityEntry[]>([])
  const [notice,setNotice]=useState<Notice>()
  const [operation,setOperation]=useState<string>()
@@ -55,11 +56,12 @@ export function useCircuit(){
     setRuntime(state.runtime);setBlock(state.blockNumber);setVerifiedAt(new Date().toISOString())
     if(state.blockNumber>40000n && cursor<state.blockNumber-40000n)cursor=state.blockNumber-40000n
     const events=await m.readStrategyEvents(session.engine,session.strategyId,cursor,state.blockNumber);if(disposed)return
-    setActivity(previous=>{const ids=new Set(previous.map(item=>item.id));const next=events.filter(e=>!ids.has(`${e.transactionHash}:${e.logIndex}`)).map(e=>({id:`${e.transactionHash}:${e.logIndex}`,at:new Date().toISOString(),title:e.eventName.replace(/([a-z])([A-Z])/g,'$1 $2'),detail:describeStrategyEvent(e.eventName,e.args),kind:(e.eventName==='OrderExecuted'?'trade':e.eventName==='TriggerMatched'?'reactivity':'success') as ActivityEntry['kind'],hash:e.transactionHash}));return [...next.reverse(),...previous].slice(0,200)})
+    setActivity(previous=>{const ids=new Set(previous.map(item=>item.id));const next=events.filter(e=>!ids.has(`${e.transactionHash}:${e.logIndex}`)).map(e=>({id:`${e.transactionHash}:${e.logIndex}`,at:new Date().toISOString(),eventName:e.eventName,eventArgs:e.args,strategyId:session.strategyId,title:e.eventName.replace(/([a-z])([A-Z])/g,'$1 $2'),detail:describeStrategyEvent(e.eventName,e.args),kind:(e.eventName==='OrderExecuted'?'trade':e.eventName==='TriggerMatched'?'reactivity':'success') as ActivityEntry['kind'],hash:e.transactionHash}));return [...next.reverse(),...previous].slice(0,200)})
     cursor=state.blockNumber+1n
     const [subscriptions,execution]=await Promise.all([Promise.all(session.subscriptions.map(id=>m.readAutomationHealth(BigInt(id),configuredHandler))),m.readExecutionHealth(state.runtime)])
+    if(!disposed)setSubscriptionProofs(subscriptions.map((s,i)=>({id:session.subscriptions[i],healthy:s.healthy,detail:s.detail,emitter:s.emitter})))
     if(!disposed)setHealth([...subscriptions.filter(s=>!s.healthy).map(s=>s.detail),execution].filter(Boolean).join(' ') || 'Saved activation subscriptions are funded. Keeper availability is monitored separately.')
-   }catch(error){if(!disposed)setHealth(`Connection needs attention. ${walletErrorMessage(error)}`)}finally{reading=false;if(!disposed)setMonitoring(false)}
+   }catch(error){if(!disposed){setSubscriptionProofs([]);setHealth(`Connection needs attention. ${walletErrorMessage(error)}`)}}finally{reading=false;if(!disposed)setMonitoring(false)}
   }
   let configuredHandler:Address
   void import('../lib/contracts/activation').then(({configuredDeployment})=>{const d=configuredDeployment();if(d&&!disposed){configuredHandler=d.handler;void refresh()}})
@@ -76,8 +78,8 @@ export function useCircuit(){
   try{let result;if(action==='sync'){const {syncStrategyTransaction}=await import('../lib/contracts/monitor');result=await syncStrategyTransaction(window.ethereum,wallet!.address,session.engine,session.strategyId)}else{const a=await import('../lib/contracts/activation');const d=a.configuredDeployment();if(!d||d.engine.toLowerCase()!==session.engine.toLowerCase())throw new Error('The current deployment does not match this circuit.');if(action==='cancelStrategy'){const {readStrategyState}=await import('../lib/contracts/monitor');const state=await readStrategyState(session.engine,session.strategyId);const blocked=endCircuitBlocker(state.runtime);if(blocked)throw new Error(blocked)}result=await a.strategyTransaction(window.ethereum,wallet!.address,d,action,session.strategyId)}
    toast(result?(action==='cancelStrategy'?'Circuit ended. Open a saved draft in My circuits to continue.':'Transaction confirmed. Refreshing the on-chain state.'):'No new settlement or expiry transition is available.',result?'success':'info');if(result)addActivity(action==='sync'?'State synchronized':action==='pauseStrategy'?'Strategy paused':action==='cancelStrategy'?'Circuit ended':'Strategy resumed',`Confirmed at block ${result.blockNumber}.`,'success',result.hash);setRefreshKey(k=>k+1)
   }catch(error){toast(walletErrorMessage(error),'error')}finally{controlLock.current=false;setOperation(undefined);setTx(undefined)}}
- const activated=async(id:Hex,subscriptions:bigint[],fromBlock:bigint,manifest:StrategyManifest)=>{const {configuredDeployment}=await import('../lib/contracts/activation');const d=configuredDeployment();if(!d||!wallet)throw new Error('Wallet or deployment disappeared.');const saved:LiveSession={chainId:50312,engine:d.engine,owner:wallet.address,strategyId:id,manifest,subscriptions:subscriptions.map(String),fromBlock:String(fromBlock)};setSession(saved);try{localStorage.setItem(LIVE_SESSION_KEY,JSON.stringify(saved))}catch{toast('Activated on chain. Browser recovery could not be saved; keep your strategy ID.','error')}setRefreshKey(k=>k+1)}
- return {wallet,walletBusy,walletConnected,ownerConnected,connect,switchNetwork,disconnect,session,runtime,recovering,monitoring,verifiedAt,block,health,activity,addActivity,notice,toast,dismissNotice:()=>setNotice(undefined),operation,tx,control,activated,refresh:()=>setRefreshKey(k=>k+1)}
+ const activated=async(id:Hex,subscriptions:bigint[],fromBlock:bigint,manifest:StrategyManifest)=>{const {configuredDeployment}=await import('../lib/contracts/activation');const d=configuredDeployment();if(!d||!wallet)throw new Error('Wallet or deployment disappeared.');const saved:LiveSession={chainId:50312,engine:d.engine,owner:wallet.address,strategyId:id,manifest,subscriptions:subscriptions.map(String),fromBlock:String(fromBlock)};setRuntime(undefined);setSubscriptionProofs([]);setVerifiedAt(undefined);setSession(saved);try{localStorage.setItem(LIVE_SESSION_KEY,JSON.stringify(saved))}catch{toast('Activated on chain. Browser recovery could not be saved; keep your strategy ID.','error')}setRefreshKey(k=>k+1)}
+ return {wallet,walletBusy,walletConnected,ownerConnected,connect,switchNetwork,disconnect,session,runtime,recovering,monitoring,verifiedAt,block,health,subscriptionProofs,activity,addActivity,notice,toast,dismissNotice:()=>setNotice(undefined),operation,tx,control,activated,refresh:()=>setRefreshKey(k=>k+1)}
 }
 export type Circuit=ReturnType<typeof useCircuit>
 

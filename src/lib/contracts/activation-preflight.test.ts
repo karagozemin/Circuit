@@ -77,3 +77,21 @@ describe('combined setup compatibility', () => {
     expect(await inspectActivation(wallet, market, initialManifest)).toMatchObject({ supportsCombinedSetup: false })
   })
 })
+
+
+describe('ladder deployment compatibility',()=>{
+  it('blocks ladder activation on the existing deployment',async()=>{
+    const {templateCatalog}=await import('../workspace')
+    reads.balanceOf=reads.allowance=10_000_000n
+    reads.activationSetupVersion=1n
+    const result=await inspectActivation(wallet,market,templateCatalog[1].manifest)
+    expect(result.ready).toBe(false)
+    expect(result.checks.find(c=>c.id==='ladder-support')?.state).toBe('fail')
+  })
+  it('accepts a ladder-aware Engine after explicit capability detection',async()=>{
+    const {templateCatalog}=await import('../workspace')
+    reads.balanceOf=reads.allowance=10_000_000n
+    reads.activationSetupVersion=1n;reads.ladderSetupVersion=1n
+    expect((await inspectActivation(wallet,market,templateCatalog[1].manifest)).ready).toBe(true)
+  })
+})

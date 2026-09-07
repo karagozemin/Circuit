@@ -1,4 +1,6 @@
-# P0 acceptance evidence — 6 September 2026
+# P0 acceptance evidence — historical live run, 6 September 2026
+
+The graph compiler, three-program acceptance criteria and Ladder deployment boundary are specified in the [programmable P0 addendum](PROGRAMMABLE_P0.md). The counts and live evidence below describe the earlier verification run.
 
 The locked PRD is unchanged. This report distinguishes implementation tests from live-chain acceptance. **The requested real lifecycle is complete and recorded. The full PRD checklist still has the specific open items listed below.**
 

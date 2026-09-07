@@ -24,7 +24,7 @@ export async function readAutomationHealth(subscriptionId:bigint, handler:Addres
   const info = normalizeSubscriptionInfo(await new SDK({public:client}).getSubscriptionInfo(subscriptionId))
   const balance = await client.getBalance({address:info.owner})
   const healthy = info.subscriptionData.handlerContractAddress.toLowerCase() === handler.toLowerCase() && balance >= REACTIVITY_MIN_BALANCE
-  return {healthy,detail:healthy ? `Subscription #${subscriptionId} funded.` : `AUTOMATION_PAUSED · subscription #${subscriptionId} inactive or underfunded. Sync remains available.`}
+  return {healthy,emitter:info.subscriptionData.emitter,detail:healthy ? `Subscription #${subscriptionId} funded.` : `AUTOMATION_PAUSED · subscription #${subscriptionId} inactive or underfunded. Sync remains available.`}
 }
 
 export async function readExecutionHealth(runtime:{status:number;collateral:Address;executionAccount:Address;currentPool:Address;nextOrderBudget:bigint}) {

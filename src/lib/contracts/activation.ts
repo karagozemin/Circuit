@@ -74,7 +74,7 @@ const circuitSmartAccountWriteAbi = [
 ] as const
 
 export type ReadinessCheck = {
-  id: 'deployment' | 'wiring' | 'market' | 'balance' | 'sdk' | 'smart-account'
+  id: 'deployment' | 'wiring' | 'market' | 'balance' | 'sdk' | 'smart-account' | 'ladder-support'
   label: string
   state: 'pass' | 'fail' | 'checking'
   detail: string
@@ -189,6 +189,11 @@ export async function inspectActivation(
     address: deployment.engine, abi: circuitEngineAbi, functionName: 'activationSetupVersion',
   }).then(version => version === 1n).catch(() => false)
 
+  if (manifest.action.sizing) {
+    const ladderVersion = await client.readContract({address:deployment.engine,abi:circuitEngineAbi,functionName:'ladderSetupVersion'}).catch(()=>0n)
+    checks.push({id:'ladder-support',label:'Bounded ladder execution',state:ladderVersion===1n&&supportsCombinedSetup?'pass':'fail',detail:ladderVersion===1n?'The Engine supports a fixed increase after each win and stops on the first loss.':'This Engine does not support ladder sizing. Deploy the updated contracts before activating this program.'})
+  }
+
   const wiredHandler = await client.readContract({
     address: deployment.engine,
     abi: circuitEngineAbi,
@@ -287,7 +292,11 @@ export async function createConfiguredStrategyTransaction(
 ) {
   const { wallet } = clients(provider, account)
   transactionUpdate({ phase: 'signature' })
-  const hash = await wallet.writeContract({
+  const sizing=manifest.action.sizing
+  const hash = sizing ? await wallet.writeContract({
+    address:deployment.engine,abi:circuitEngineAbi,functionName:'createConfiguredLadderStrategy',
+    args:[manifestHash(manifest),manifestToEngineConfig(manifest),executionAccount,market.marketId,parseUnits(sizing.initialCollateral,6),parseUnits(sizing.incrementCollateral,6)],
+  }) : await wallet.writeContract({
     address: deployment.engine,
     abi: circuitEngineAbi,
     functionName: 'createConfiguredStrategy',
@@ -305,6 +314,7 @@ export async function createStrategyTransaction(
   deployment: CircuitDeployment,
   manifest: StrategyManifest,
 ) {
+  if(manifest.action.sizing)throw new Error('Ladder programs require combined ladder setup on a compatible Engine.')
   const { wallet } = clients(provider, account)
   transactionUpdate({phase:'signature'})
   const hash = await wallet.writeContract({

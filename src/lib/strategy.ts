@@ -6,7 +6,7 @@ export interface StrategyManifest {
   name: string
   series: { asset: 'BTC' | 'ETH'; intervalSec: 900 | 3600 }
   trigger: { type: TriggerType; value: string }
-  action: { type: ActionType; maxCollateral: string; maxSlippageBps: number }
+  action: { type: ActionType; maxCollateral: string; maxSlippageBps: number; sizing?: { mode: 'WIN_LADDER'; initialCollateral: string; incrementCollateral: string } }
   resolution: {
     onWin: { rollPercent: number }
     onLoss: { incrementConsecutiveLosses: boolean }
@@ -60,6 +60,14 @@ export function validateManifest(input: unknown): ValidationIssue[] {
   if (Number(get('policy.maxTotalCapitalAtRisk')) < Number(get('action.maxCollateral'))) {
     issues.push({ path: 'policy.maxTotalCapitalAtRisk', message: 'Hard cap cannot be below one order.' })
   }
+  if(get('action.sizing') !== undefined) {
+    required('action.sizing.mode',v=>v==='WIN_LADDER','Unsupported sizing rule.')
+    decimal('action.sizing.initialCollateral',0.000001,10)
+    decimal('action.sizing.incrementCollateral',0.000001,10)
+    if(Number(get('action.sizing.initialCollateral'))>Number(get('action.maxCollateral'))) issues.push({path:'action.sizing.initialCollateral',message:'Initial order must fit the per-order cap.'})
+    if(Number(get('action.sizing.incrementCollateral'))>Number(get('action.maxCollateral'))) issues.push({path:'action.sizing.incrementCollateral',message:'Ladder increment must fit the per-order cap.'})
+    required('policy.stopAfterConsecutiveLosses',v=>v===1,'A ladder stops on its first loss.')
+  }
   integer('action.maxSlippageBps', 0, 1000)
   integer('policy.maxRounds', 1, 65535)
   integer('policy.stopAfterConsecutiveLosses', 1, 65535)
@@ -92,13 +100,24 @@ export type StrategyDraft = {
 
 /** Conservative local compiler. Omitted fields remain absent; never merge with a preset. */
 export function compileIntent(text: string): StrategyDraft {
+  // Normalize supported Turkish intent phrases, preserving omitted fields as missing.
+  text=text.toLocaleLowerCase('tr-TR').replace(/ı/g,'i')
+    .replace(/(\d+(?:\.\d+)?)\s*(?:cent|sent|cent’i|cent'i)(?:[’']?i)?\s*(?:geçerse|üzerine çikarsa)/g,'above $1%')
+    .replace(/(\d+(?:\.\d+)?)\s*(?:cent|sent)(?:[’']?in)?\s*altina düşerse/g,'below $1%')
+    .replace(/\b(up|down)\s+al\b/g,'buy $1').replace(/iki kayipta dur/g,'stop after two losses')
+    .replace(/(\d+) kayipta dur/g,'stop after $1 losses').replace(/(\d+(?:\.\d+)?)\s*(?:usdc|tusdc|usdso)\s*(?:ile|tutarinda)/g,'with $1')
   const lower = text.toLowerCase()
+  if(/\b(?:don't|do not|never buy|alma)\b/i.test(text)||(/buy up/i.test(text)&&/buy down/i.test(text)))return {version:1,name:'Unresolved intent'}
   const threshold = text.match(/(?:above|over|greater than|>|below|under|<)\s*(?:up\s*)?([0-9]+(?:\.[0-9]+)?)(%)?/i)
   const capture = (pattern: RegExp) => text.match(pattern)?.[1]
-  const budget = capture(/(?:with|amount)\s*([0-9]+(?:\.[0-9]+)?)/i)
+  const ladderRequested=/ladder|increase.+win|win.+increase/i.test(text)
+  const initial=capture(/(?:start|initial)\s*(?:order\s*)?(?:with|at|:)?\s*([0-9]+(?:\.[0-9]+)?)/i)
+  const increment=capture(/increase\s*(?:by|:)\s*([0-9]+(?:\.[0-9]+)?)/i)
+  const orderCap=capture(/max(?:imum)? order(?: size)?\s*(?:of|:)?\s*([0-9]+(?:\.[0-9]+)?)/i)
+  const budget = ladderRequested?(orderCap??''):capture(/(?:with|amount)\s*([0-9]+(?:\.[0-9]+)?)/i)
   const cap = capture(/(?:risk|cap|capital)[^0-9.]*([0-9]+(?:\.[0-9]+)?)/i)
   const roll = capture(/roll\s*(half|[0-9]+%)/i)
-  const losses = capture(/(?:after|at)\s*(two|[0-9]+)\s*loss/i)
+  const losses = capture(/(?:after|at)\s*(first|one|two|[0-9]+)\s*loss/i)
   const rounds = capture(/(?:max(?:imum)?\s*)?([0-9]+)\s*rounds/i)
   const slippage = capture(/(?:slippage\s*(?:of|cap|:)?\s*)([0-9]+)\s*bps/i) ?? capture(/([0-9]+)\s*bps\s*(?:max\s*)?slippage/i)
   const expiry = capture(/(?:expiry buffer|buffer|min(?:imum)? seconds to expiry)\s*(?:of|:)?\s*([0-9]+)/i)
@@ -115,16 +134,18 @@ export function compileIntent(text: string): StrategyDraft {
     action: {
       ...(/buy up/i.test(lower) ? { type: 'BUY_UP' as const } : /buy down/i.test(lower) ? { type: 'BUY_DOWN' as const } : {}),
       ...(budget !== undefined ? { maxCollateral: budget } : {}),
+      ...(ladderRequested?{sizing:{mode:'WIN_LADDER' as const,initialCollateral:initial??'',incrementCollateral:increment??''}}:{}),
       ...(slippage !== undefined ? { maxSlippageBps: Number(slippage) } : {}),
     },
     resolution: {
+      ...(ladderRequested?{onWin:{rollPercent:0}}:{}),
       ...(roll ? { onWin: { rollPercent: roll.toLowerCase() === 'half' ? 50 : Number(roll.slice(0, -1)) } } : {}),
       onLoss: { incrementConsecutiveLosses: true }, onVoid: { treatAsLoss: false, treatAsWin: false },
     },
     policy: {
       ...(cap !== undefined ? { maxTotalCapitalAtRisk: cap } : {}),
       ...(rounds !== undefined ? { maxRounds: Number(rounds) } : {}),
-      ...(losses !== undefined ? { stopAfterConsecutiveLosses: losses.toLowerCase() === 'two' ? 2 : Number(losses) } : {}),
+      ...(losses !== undefined ? { stopAfterConsecutiveLosses: losses.toLowerCase() === 'two' ? 2 : /first|one/i.test(losses)?1:Number(losses) } : {}),
       ...(expiry !== undefined ? { minSecondsToExpiry: Number(expiry) } : {}),
     },
   }

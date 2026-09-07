@@ -4,11 +4,23 @@
 
 # Circuit
 
-**Define the rules. Bound the capital. Verify every transition.**
+**Others automate a strategy. Circuit makes strategies programmable.**
 
-Circuit lets users configure conditional trading strategies for **dreamDEX Event Contracts**, approve a deterministic manifest, and execute across market windows on **Somnia**. A user-owned smart account holds the funds. On-chain Reactivity delivers market events. A keeper submits transactions that the Engine checks against the approved strategy.
+Circuit lets users compose node graphs, compile deterministic Strategy Manifests, and execute bounded trading programs for **dreamDEX Event Contracts**, approve a deterministic manifest, and execute across market windows on **Somnia**. A user-owned smart account holds the funds. On-chain Reactivity delivers market events. A keeper submits transactions that the Engine checks against the approved strategy.
 
 **[Architecture](ARCHITECTURE.md) · [Live demo](docs/LIVE_DEMO.md) · [Video](deployments/evidence/live-demo/circuit-live-cycle.mp4) · [Deployment](deployments/shannon.json) · [Acceptance evidence](docs/ACCEPTANCE.md)**
+
+## Compose → Compile → Execute → React
+
+The visual editor supports adding, removing, moving and connecting **MARKET → CONDITION → BUY → WIN/LOSS → ROLL → STOP** nodes. The actual graph compiler validates the bounded control flow and produces the manifest the wallet authorizes. Rule or connection edits require recompilation. Layout changes do not change the program.
+
+**Same engine. Three different trading programs:** Contrarian Roller, Conditional Ladder and Bounded Streak. Conditional Ladder starts at 5 tUSDC, increases by 2.5 after each settled win up to 10, stops on the first loss, and respects its 25 tUSDC lifetime cap and 3-round limit. The other programs roll a percentage of real redeemed proceeds with different entry and stop rules.
+
+The intent assistant proposes rules without predictions or invented limits. Activity shows state, exposure limits, last/next actions and an execution checklist backed by real event receipts and subscription reads.
+
+**Release boundary:** Ladder requires deploying the updated Engine, handler and linked smart account. The existing live deployment does not support it; activation preflight blocks it explicitly. Historical live evidence below is not a new Ladder run.
+
+[Programmable P0 acceptance](docs/PROGRAMMABLE_P0.md) · [Jury demo script](docs/DEMO_SCRIPT.md)
 
 ## A complete cycle, verified on Shannon
 

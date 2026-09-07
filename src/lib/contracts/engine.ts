@@ -58,6 +58,9 @@ const strategyConfigComponents = [
 ] as const
 
 export const circuitEngineAbi = [
+  {type:'function',name:'ladderSetupVersion',stateMutability:'pure',inputs:[],outputs:[{type:'uint256'}]},
+  {type:'function',name:'createConfiguredLadderStrategy',stateMutability:'nonpayable',inputs:[{name:'manifestHash',type:'bytes32'},{name:'config',type:'tuple',components:strategyConfigComponents},{name:'executionAccount',type:'address'},{name:'marketId',type:'bytes32'},{name:'initialCollateral',type:'uint256'},{name:'incrementCollateral',type:'uint256'}],outputs:[{name:'strategyId',type:'bytes32'}]},
+
   { type: 'function', name: 'activationSetupVersion', stateMutability: 'pure', inputs: [], outputs: [{ name: '', type: 'uint256' }] },
   { type: 'function', name: 'createConfiguredStrategy', stateMutability: 'nonpayable', inputs: [
     { name: 'manifestHash', type: 'bytes32' },

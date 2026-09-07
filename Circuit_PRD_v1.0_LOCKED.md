@@ -1746,3 +1746,8 @@ NEXT WINDOW OR STOP
 ```
 
 If that exact chain works reliably and the UI communicates it clearly, do not add more scope.
+
+
+## Programmable P0 acceptance addendum
+
+The product scope remains locked. The visual graph editor, actual graph-to-manifest compiler, three distinct programs (Contrarian Roller, Conditional Ladder, Bounded Streak), on-chain subscription evidence, deterministic intent assistance and execution state/timeline are mandatory release criteria. See [the detailed acceptance addendum](docs/PROGRAMMABLE_P0.md) and [jury demo script](docs/DEMO_SCRIPT.md). No vault, market maker, hedge product or copy trading is added.
