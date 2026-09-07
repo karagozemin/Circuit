@@ -1,0 +1,67 @@
+{
+  "network": "Somnia Shannon Testnet",
+  "chainId": 50312,
+  "admin": "0x8aeA55E869eab02A0a68D3172e85C5aeCEe8534D",
+  "startedAt": "2026-09-07T17:47:40.655Z",
+  "sourceCommit": "3d230360636543ce4a3be1e28828226591163322",
+  "previousDeployment": "deployments/shannon-programmable.json",
+  "creationCodeHashes": {
+    "engine": "0x1f98d92ecc18f88757d3135d12a68ed0ef81806a2457db5b7b21d499ca7c7ef3",
+    "handler": "0x5e8405e556ab4b1f02af5f79da021dc49b04a723f8933050006d819a2167a40f",
+    "smartAccount": "0x539d36914984438f41e123aa259dd61b808cb3768dd8eb541e17de7a724badef"
+  },
+  "transactions": {
+    "engine": {
+      "hash": "0x3c72dc9e58e91302e8fe30460a43afdc1f937196036fee29ab5e08491f8ca1d5",
+      "status": "success",
+      "blockNumber": "482300907",
+      "gasUsed": "69935824",
+      "gasCostSTT": "0.419614944"
+    },
+    "handler": {
+      "hash": "0x09fcb52acf1138650e53505ff66a6805db887b4d03d8700515ef73f21d139142",
+      "status": "success",
+      "blockNumber": "482300917",
+      "gasUsed": "22022101",
+      "gasCostSTT": "0.132132606"
+    },
+    "smartAccount": {
+      "hash": "0x6b737e2c8cdf02f945f864f412e4a8a0b66929156e205ea9a5b3a787b7f5e707",
+      "status": "success",
+      "blockNumber": "482300927",
+      "gasUsed": "9012722",
+      "gasCostSTT": "0.054076332"
+    },
+    "wiring": {
+      "hash": "0x70bf21bcd76f07a9daf30886a768d0ff37758d26f3729c579dfc7dd93429166b",
+      "status": "success",
+      "blockNumber": "482300944",
+      "gasUsed": "46059",
+      "gasCostSTT": "0.000276354"
+    }
+  },
+  "engine": "0x7f6750dd6e79b68ef6f2f1aa131dd8bab088bf24",
+  "handler": "0xa77ea14cedaecc4080ceefddeef045a094045808",
+  "smartAccount": "0x6596afe9e672c4cb5d4e7264edba7f4ef209d6cd",
+  "codeHashes": {
+    "engine": "0xe33b008da025aafa24b7da462961bb81f816fd4e1ad1e3ecca65698f2ffe6914",
+    "handler": "0x63ab5222b243eeddaf2b7161eb282970867d4e6758053cf012292209a0d61b79",
+    "smartAccount": "0x0eb4f033f7bdd6a36a83ab550457e250ef4769f233fe2572c0182941e07ce840"
+  },
+  "verifiedAt": "2026-09-07T17:47:50.529Z",
+  "verification": {
+    "runtimeMatchesLocalArtifacts": true,
+    "ownershipAndWiring": true,
+    "simulatedIntervalsSec": [
+      60,
+      300,
+      900
+    ],
+    "activationSetupVersion": 1,
+    "ladderSetupVersion": 1,
+    "smartAccountPrepared": false,
+    "liveLifecycleComplete": false,
+    "scope": "Deployment, wiring and read-only strategy creation simulations. No strategy activation, funding, subscriptions or orders."
+  },
+  "totalGasCostSTT": "0.606100236"
+}

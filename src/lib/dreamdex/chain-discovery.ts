@@ -1,3 +1,4 @@
+import { defaultExpiryBuffer } from '../market-windows'
 import { binaryModuleReadAbi } from '@somnia-chain/markets-sdk'
 import { somniaShannon } from '@somnia-chain/markets-sdk/chains'
 import { createPublicClient, fallback, http, parseAbi, type Address } from 'viem'
@@ -8,7 +9,7 @@ const createdAbi = parseAbi(['event MarketCreated(bytes32 indexed marketId,addre
 const readAbi = parseAbi(['function owner() view returns(address)','function status() view returns(uint8)','function expiry() view returns(uint64)','function outcomeToken() view returns(address)','function decimals() view returns(uint8)','function getBookLevels(bool,uint64) view returns((uint256 price,uint256 quantity)[])'])
 
 /** Indexer outage backstop. Creator ownership and every market binding are checked against chain state. */
-export async function discoverFromChain({asset='BTC',intervalSec=900,minSecondsToExpiry=120,afterExpiry=0}:DiscoverMarketOptions = {}):Promise<TradingMarketSnapshot> {
+export async function discoverFromChain({asset='BTC',intervalSec=900,minSecondsToExpiry=defaultExpiryBuffer(intervalSec),afterExpiry=0}:DiscoverMarketOptions = {}):Promise<TradingMarketSnapshot> {
   const module = DREAMDEX_CONTRACTS.binaryModule
   const creator = DREAMDEX_CONTRACTS.marketCreator
   if (!module || !creator) throw new Error('No authoritative dreamDEX deployment configured.')

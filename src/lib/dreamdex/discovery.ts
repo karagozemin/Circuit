@@ -3,6 +3,7 @@ import { createPublicClient, fallback, http } from 'viem'
 import { somniaShannon } from '@somnia-chain/markets-sdk/chains'
 import { createDreamDexExchange, SHANNON_DIAGNOSTIC_RPC_URL, SHANNON_FALLBACK_RPC_URL, SHANNON_RPC_URL } from './config'
 import { MarketDiscoveryError } from './discovery-error'
+import { defaultExpiryBuffer, type MarketInterval } from '../market-windows'
 
 export interface TradingMarketSnapshot {
   sdkReady?: boolean
@@ -31,7 +32,7 @@ export interface TradingMarketSnapshot {
 
 export interface DiscoverMarketOptions {
   asset?: 'BTC' | 'ETH'
-  intervalSec?: 900 | 3600
+  intervalSec?: MarketInterval
   minSecondsToExpiry?: number
   afterExpiry?: number
   exchange?: SomniaMarkets
@@ -48,7 +49,7 @@ export function isMarketEligible(
 async function discoverViaSdk({
   asset = 'BTC',
   intervalSec = 900,
-  minSecondsToExpiry = 120,
+  minSecondsToExpiry = defaultExpiryBuffer(intervalSec),
   afterExpiry = 0,
   exchange = createDreamDexExchange(),
 }: DiscoverMarketOptions = {}): Promise<TradingMarketSnapshot> {

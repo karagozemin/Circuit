@@ -1,10 +1,12 @@
+import { defaultExpiryBuffer, marketWindows, type MarketInterval } from './market-windows'
+
 export type TriggerType = 'LAST_FILL_PRICE_ABOVE' | 'LAST_FILL_PRICE_BELOW'
 export type ActionType = 'BUY_UP' | 'BUY_DOWN'
 
 export interface StrategyManifest {
   version: 1
   name: string
-  series: { asset: 'BTC' | 'ETH'; intervalSec: 900 | 3600 }
+  series: { asset: 'BTC' | 'ETH'; intervalSec: MarketInterval }
   trigger: { type: TriggerType; value: string }
   action: { type: ActionType; maxCollateral: string; maxSlippageBps: number; sizing?: { mode: 'WIN_LADDER'; initialCollateral: string; incrementCollateral: string } }
   resolution: {
@@ -33,7 +35,17 @@ export const initialManifest: StrategyManifest = {
 export type ValidationIssue = { path: string; message: string }
 
 const supportedAssets = new Set(['BTC', 'ETH'])
-const supportedIntervals = new Set([900, 3600])
+const supportedIntervals = new Set<number>([...marketWindows.map(window => window.seconds), 3600])
+
+/** Keep a compatible user buffer; replace one that cannot fit the selected window. */
+export function changeMarketWindow(manifest: StrategyManifest, intervalSec: MarketInterval): StrategyManifest {
+  return {
+    ...manifest,
+    series: { ...manifest.series, intervalSec },
+    policy: { ...manifest.policy, minSecondsToExpiry: manifest.policy.minSecondsToExpiry >= intervalSec
+      ? defaultExpiryBuffer(intervalSec) : manifest.policy.minSecondsToExpiry },
+  }
+}
 
 export function validateManifest(input: unknown): ValidationIssue[] {
   const issues: ValidationIssue[] = []
@@ -72,6 +84,9 @@ export function validateManifest(input: unknown): ValidationIssue[] {
   integer('policy.maxRounds', 1, 65535)
   integer('policy.stopAfterConsecutiveLosses', 1, 65535)
   integer('policy.minSecondsToExpiry', 1, 4294967295)
+  if (supportedIntervals.has(get('series.intervalSec') as number) && Number(get('policy.minSecondsToExpiry')) >= Number(get('series.intervalSec'))) {
+    issues.push({ path: 'policy.minSecondsToExpiry', message: 'Expiry buffer must be shorter than the market window.' })
+  }
   integer('resolution.onWin.rollPercent', 0, 100)
   required('resolution.onLoss.incrementConsecutiveLosses', v => v === true, 'P0 losses must increment the loss counter.')
   required('resolution.onVoid.treatAsLoss', v => v === false, 'P0 voids must be neutral.')
@@ -125,7 +140,7 @@ export function compileIntent(text: string): StrategyDraft {
     version: 1, name: 'Intent draft',
     series: {
       ...(/\bbtc\b/i.test(text) ? { asset: 'BTC' as const } : /\beth\b/i.test(text) ? { asset: 'ETH' as const } : {}),
-      ...(/\b(?:15m|15 min)\b/i.test(text) ? { intervalSec: 900 as const } : /\b(?:1h|60m|1 hour)\b/i.test(text) ? { intervalSec: 3600 as const } : {}),
+      ...(/\b1\s*(?:m|min(?:ute)?s?|dk|dakika)\b/i.test(text) ? { intervalSec: 60 as const } : /\b5\s*(?:m|min(?:ute)?s?|dk|dakika)\b/i.test(text) ? { intervalSec: 300 as const } : /\b(?:15m|15 min)\b/i.test(text) ? { intervalSec: 900 as const } : /\b(?:1h|60m|1 hour)\b/i.test(text) ? { intervalSec: 3600 as const } : {}),
     },
     trigger: threshold ? {
       type: /below|under|</i.test(threshold[0]) ? 'LAST_FILL_PRICE_BELOW' : 'LAST_FILL_PRICE_ABOVE',

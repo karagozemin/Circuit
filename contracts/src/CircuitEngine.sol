@@ -591,12 +591,12 @@ contract CircuitEngine is ICircuitEngine {
 
     function _validateConfig(bytes32 manifestHash, StrategyConfig calldata config) private pure {
         if (manifestHash == bytes32(0)) revert InvalidManifest();
-        if (config.assetId > 1 || (config.intervalSec != 900 && config.intervalSec != 3600) || config.triggerValue > PRICE_SCALE) revert InvalidPolicy();
+        if (config.assetId > 1 || (config.intervalSec != 60 && config.intervalSec != 300 && config.intervalSec != 900 && config.intervalSec != 3600) || config.triggerValue > PRICE_SCALE) revert InvalidPolicy();
         if (config.maxOrderCollateral == 0 || config.maxOrderCollateral > 10_000_000 || config.maxTotalCapitalAtRisk < config.maxOrderCollateral) {
             revert InvalidPolicy();
         }
         if (config.maxRounds == 0 || config.stopAfterLosses == 0) revert InvalidPolicy();
-        if (config.minSecondsToExpiry == 0 || config.maxSlippageBps > MAX_SLIPPAGE_BPS) revert InvalidPolicy();
+        if (config.minSecondsToExpiry == 0 || config.minSecondsToExpiry >= config.intervalSec || config.maxSlippageBps > MAX_SLIPPAGE_BPS) revert InvalidPolicy();
         if (config.rollPercentBps > BPS) revert InvalidPolicy();
     }
 

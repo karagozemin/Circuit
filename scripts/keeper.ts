@@ -42,7 +42,7 @@ const poolAbi = parseAbi(['function getOrderBookParameters() view returns ((uint
 const tokenAbi = parseAbi(['function balanceOf(address) view returns (uint256)','function allowance(address,address) view returns (uint256)','function approve(address,uint256) returns (bool)'])
 const accountAbi = parseAbi(['function execute(address,uint256,bytes) returns (bytes)'])
 interface Runtime { owner:Address; status:number; round:number; currentMarketId:Hex; currentMarket:Address; currentPool:Address; collateral:Address; executionAccount:Address; currentPositionSize:bigint; nextOrderBudget:bigint; triggerFillPrice:bigint; cumulativeCapitalUsed:bigint }
-interface Config extends Omit<OrderBounds,'triggerFillPrice'|'nextOrderBudget'|'cumulativeCapitalUsed'> { assetId:number; intervalSec:900|3600; minSecondsToExpiry:number }
+interface Config extends Omit<OrderBounds,'triggerFillPrice'|'nextOrderBudget'|'cumulativeCapitalUsed'> { assetId:number; intervalSec:60|300|900|3600; minSecondsToExpiry:number }
 async function send(address:Address, callAbi:Abi, functionName:string, args:readonly unknown[], reason:string) {
   const simulation = await client.simulateContract({address,abi:callAbi,functionName,args,account})
   if (!execute) { await record('dry-run',{reason,address,functionName,args}); return }

@@ -18,7 +18,7 @@ The visual editor supports adding, removing, moving and connecting **MARKET → 
 
 The intent assistant proposes rules without predictions or invented limits. Activity shows state, exposure limits, last/next actions and an execution checklist backed by real event receipts and subscription reads.
 
-**Deployment:** The [Ladder-capable Engine, handler and linked smart account](deployments/shannon-programmable.json) are deployed and verified on Shannon. Update the three public frontend addresses to use this deployment. Initial account preparation is still required. Ladder has local execution tests; historical live evidence below is not a Ladder run.
+**Deployment:** The [1m/5m/15m-capable Engine, handler and linked smart account](deployments/shannon-short-windows.json) are deployed on Shannon. Runtime bytecode, ownership/wiring and strategy-creation simulations for all three windows are verified. Local frontend/keeper configuration uses these addresses. Initial account preparation is still required; deployment does not establish a live strategy cycle.
 
 [Language and runtime evidence](docs/LANGUAGE_AND_RUNTIME.md) · [Programmable P0 acceptance](docs/PROGRAMMABLE_P0.md) · [Jury demo script](docs/DEMO_SCRIPT.md)
 
@@ -175,7 +175,7 @@ The working live cycle is complete; the full PRD acceptance matrix remains track
 - The editor supports adding/removing/moving nodes and reconnecting ports. The compiler accepts a bounded v1 grammar with one of each supported node, explicit outcome branches and a STOP-guarded loop. Arbitrary graph topologies, multiple simultaneous conditions/orders and a general-purpose bytecode VM are not implemented.
 - The intent compiler is local. The planned Somnia Agent integration remains outstanding.
 - The recorded live proof covers BUY UP and a losing resolution. Live BUY DOWN, winning redemption and void acceptance remain open; winner/void paths have local contract coverage.
-- BTC/ETH and 15m/1h configurations are supported, but availability is checked on chain. The recorded run used 1h because the observed 15m series was stale.
+- The builder offers BTC/ETH with 1m/5m/15m windows; existing 1h strategies remain readable. Availability is checked on chain. The recorded run used 1h because the observed 15m series was stale. The [current Shannon deployment](deployments/shannon-short-windows.json) supports 1m/5m/15m; earlier deployments accept only 15m/1h. Live 1m/5m market availability has not been verified. Selecting 1m replaces an incompatible expiry buffer with 10 seconds; compatible custom buffers are preserved.
 - Handler bindings currently support one active strategy per emitter. Automatic cross-user keeper enrollment and production subscription aggregation are not implemented.
 - The deployment has administrative wiring authority. Review the [trust boundaries](ARCHITECTURE.md#authority-and-trust-boundaries) before treating it as a production service.
 

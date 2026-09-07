@@ -144,7 +144,7 @@ contract CircuitReactivityHandler is SomniaEventHandler {
             || record.oracleQuestionId != created.oracleQuestionId) revert UnboundEmitter();
         if (created.expiry < created.tradingStart || created.expiry - created.tradingStart != created.intervalSec) revert MalformedEvent();
         bytes32 asset = keccak256(bytes(created.asset));
-        if ((asset != keccak256("BTC") && asset != keccak256("ETH")) || (created.intervalSec != 900 && created.intervalSec != 3600)) return;
+        if ((asset != keccak256("BTC") && asset != keccak256("ETH")) || (created.intervalSec != 60 && created.intervalSec != 300 && created.intervalSec != 900 && created.intervalSec != 3600)) return;
         uint8 assetId = asset == keccak256("BTC") ? 0 : 1;
         marketMetadata[marketId] = MarketMetadata(emitter, assetId, uint32(created.intervalSec), true);
         emit SuccessorMarketRegistered(marketId, emitter, assetId, uint32(created.intervalSec));

@@ -1,5 +1,30 @@
 import { describe, expect, it } from 'vitest'
-import { compileIntent, initialManifest, validateManifest } from './strategy'
+import { changeMarketWindow, compileIntent, initialManifest, validateManifest } from './strategy'
+
+describe('one-minute windows', () => {
+  it.each(['5m', '5 min', '5 minutes', '5 dakika'])('extracts %s as a five-minute window', window => {
+    expect(compileIntent(`BTC ${window} above 70%, buy DOWN`).series?.intervalSec).toBe(300)
+  })
+  it('replaces an incompatible buffer and keeps compatible custom limits', () => {
+    const minute = changeMarketWindow(initialManifest, 60)
+    expect(minute.series.intervalSec).toBe(60)
+    expect(minute.policy.minSecondsToExpiry).toBe(10)
+    expect(validateManifest(minute)).toEqual([])
+    expect(initialManifest.policy.minSecondsToExpiry).toBe(120)
+    const custom = { ...initialManifest, policy: { ...initialManifest.policy, minSecondsToExpiry: 25 } }
+    expect(changeMarketWindow(custom, 60).policy.minSecondsToExpiry).toBe(25)
+  })
+  it.each([60, 120])('rejects a %ss buffer that cannot fit a one-minute window', buffer => {
+    const minute = changeMarketWindow(initialManifest, 60)
+    minute.policy.minSecondsToExpiry = buffer
+    expect(validateManifest(minute).map(issue => issue.path)).toContain('policy.minSecondsToExpiry')
+  })
+  it.each(['1m', '1 min', '1 minute', '1 dakika', '1dk'])('extracts %s without inventing a buffer', window => {
+    const draft = compileIntent(`BTC ${window} above 70%, buy DOWN`)
+    expect(draft.series).toEqual({ asset: 'BTC', intervalSec: 60 })
+    expect(draft.policy?.minSecondsToExpiry).toBeUndefined()
+  })
+})
 
 describe('strategy manifest validation', () => {
   it('accepts the P0 contrarian roller', () => {

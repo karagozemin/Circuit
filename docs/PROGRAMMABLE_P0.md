@@ -58,3 +58,9 @@ Local verification for this update: **67 TypeScript tests, 48 Foundry tests, pro
 ## Shared-runtime evidence
 
 Run `npm run test:programs` to compile the actual three template graphs, initialize three isolated smart accounts and execute their programs on the **same Engine instance**. The [local machine-readable proof](../deployments/evidence/local-three-programs.json) records graph/manifest/hash pairs, individual fill and settlement transactions, eight completed rounds and each program’s final stop. Contrarian budgets follow 10 → 2 → 10 under the chosen fixture fills; Ladder follows 5 → 7.5 → 10; Streak follows 3 → 2. These are bounded order budgets; recorded actual spend is separate. Mock prices/outcomes and impersonated validator dispatch are local fixtures, not measured live-market performance.
+
+## Short-window deployment
+
+The [current Shannon deployment](../deployments/shannon-short-windows.json) adds 1m/5m support alongside 15m and legacy 1h handling. Engine, handler and linked smart-account receipts succeeded. Deployed runtime code matches the local compiled artifacts (constructor immutables checked separately through ownership/wiring reads). Read-only `createStrategy` simulations passed for 60, 300 and 900 seconds. Local frontend and keeper address configuration was updated after verification. The new smart account still needs funding/preparation before activation; no live strategy, subscriptions or orders were created during redeployment.
+
+`node --env-file=.env.local --import tsx scripts/deploy-windows.ts` performs a read-only preflight. Add `--execute` to deploy/resume the journaled deployment and update local public addresses after verification. Build contracts first with `forge build`. The journal rejects a different signer or changed build.

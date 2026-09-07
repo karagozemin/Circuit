@@ -1,9 +1,17 @@
 import {describe,expect,it} from 'vitest'
 import {compileGraph,graphKey,manifestGraph} from './graph'
-import {initialManifest,canonicalManifest,compileIntent,validateManifest} from './strategy'
+import {initialManifest,canonicalManifest,changeMarketWindow,compileIntent,validateManifest} from './strategy'
 import {templateCatalog} from './workspace'
 import {manifestToEngineConfig,manifestHash} from './contracts/engine'
 describe('graph → manifest → Engine',()=>{
+ it.each([60,300] as const)('compiles an edited %ss graph through to Engine config and a new hash',intervalSec=>{
+  const manifest=changeMarketWindow(initialManifest,intervalSec)
+  const result=compileGraph(manifestGraph(manifest))
+  expect(result.ok).toBe(true)
+  if(!result.ok)throw new Error(result.errors.join('; '))
+  expect(manifestToEngineConfig(result.manifest)).toMatchObject({intervalSec,minSecondsToExpiry:intervalSec===60?10:120})
+  expect(manifestHash(result.manifest)).not.toBe(manifestHash(initialManifest))
+ })
  it.each(templateCatalog.map(t=>[t.name,t.manifest] as const))('compiles %s to its exact authorized manifest',(_name,manifest)=>{
   const result=compileGraph(manifestGraph(manifest));expect(result.ok).toBe(true)
   if(result.ok){expect(canonicalManifest(result.manifest)).toBe(canonicalManifest(manifest));expect(manifestHash(result.manifest)).toBe(manifestHash(manifest));expect(manifestToEngineConfig(result.manifest)).toEqual(manifestToEngineConfig(manifest))}

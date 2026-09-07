@@ -743,16 +743,70 @@ contract CircuitEngineTest {
         handler.onEvent(address(0xBAD), topics, data);
     }
 
+    function testOneMinuteExecutesAndAutomaticallyArmsVerifiedSuccessor() public {
+        _testShortWindow(60, 10);
+    }
+
+    function testFiveMinuteExecutesAndAutomaticallyArmsVerifiedSuccessor() public {
+        _testShortWindow(300, 30);
+    }
+
+    function _testShortWindow(uint32 intervalSec, uint32 buffer) private {
+        CircuitEngine.StrategyConfig memory config = _config();
+        config.intervalSec = intervalSec;
+        config.minSecondsToExpiry = buffer;
+        pool = new MockBinaryPool(collateral, outcome);
+        market = new MockBinaryMarket(address(pool), address(collateral), address(outcome), uint64(block.timestamp + intervalSec));
+        module.useInterval(intervalSec);
+        module.useMarket(market);
+        CircuitSmartAccount account = new CircuitSmartAccount(address(this), address(engine));
+        collateral.setBalance(address(account), 100_000_000);
+        strategyId = engine.createConfiguredStrategy(MANIFEST_HASH, config, address(account), bytes32(uint256(840)), true);
+        engine.activateStrategy(strategyId);
+        _completeLoss(841);
+        vm.warp(market.expiry());
+        (MockBinaryMarket next, MockBinaryPool nextPool, bytes32 nextId) = _registerNext("BTC", 843);
+        (,, uint32 interval, bool verified) = handler.marketMetadata(nextId);
+        require(verified && interval == intervalSec, "short-window successor not registered");
+        vm.prank(address(0xCAFE));
+        engine.rollToNextMarket(strategyId, nextId);
+        (, CircuitEngine.StrategyRuntime memory state) = engine.getStrategy(strategyId);
+        require(state.status == CircuitEngine.StrategyStatus.ARMED && state.round == 2, "short-window rollover failed");
+        require(state.currentMarket == address(next), "wrong successor");
+        require(collateral.allowance(address(account), address(nextPool)) == state.nextOrderBudget, "wrong successor budget");
+        pool = nextPool;
+        market = next;
+        _trigger(bytes32(uint256(844)));
+        vm.warp(market.expiry() - buffer + 1);
+        vm.expectRevert(CircuitEngine.ExpiryBufferViolated.selector);
+        engine.executeReadyAction(strategyId, 745_000, 10_000_000);
+    }
+
+    function testRejectsExpiryBufferThatCannotFitWindow() public {
+        CircuitEngine.StrategyConfig memory config = _config();
+        config.intervalSec = 60;
+        vm.expectRevert(CircuitEngine.InvalidPolicy.selector);
+        engine.createStrategy(MANIFEST_HASH, config);
+        config.minSecondsToExpiry = 60;
+        vm.expectRevert(CircuitEngine.InvalidPolicy.selector);
+        engine.createStrategy(MANIFEST_HASH, config);
+        config.intervalSec = 600;
+        config.minSecondsToExpiry = 10;
+        vm.expectRevert(CircuitEngine.InvalidPolicy.selector);
+        engine.createStrategy(MANIFEST_HASH, config);
+    }
+
     function _registerNext(string memory asset, uint256 seed) private returns (MockBinaryMarket next, MockBinaryPool nextPool, bytes32 nextId) {
         nextPool = new MockBinaryPool(collateral, outcome);
-        next = new MockBinaryMarket(address(nextPool), address(collateral), address(outcome), uint64(block.timestamp + 1800));
+        uint64 interval = module.intervalSec();
+        next = new MockBinaryMarket(address(nextPool), address(collateral), address(outcome), market.expiry() + interval);
         module.useMarket(next);
         nextId = bytes32(seed);
         bytes32[] memory topics = new bytes32[](4);
         topics[0] = handler.MARKET_CREATED_TOPIC(); topics[1] = nextId;
         topics[2] = bytes32(uint256(uint160(address(next)))); topics[3] = bytes32(uint256(uint160(address(nextPool))));
         bytes memory data = abi.encode(uint256(1),uint256(2),address(collateral),asset,uint256(0),
-            uint64(next.expiry()-900),next.expiry(),uint256(0),"test window",uint64(900));
+            uint64(next.expiry()-interval),next.expiry(),uint256(0),"test window",interval);
         vm.prank(address(0x0100)); handler.onEvent(address(module), topics, data);
     }
 
