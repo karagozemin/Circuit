@@ -4,9 +4,9 @@
 
 # Circuit
 
-**Others automate a strategy. Circuit makes strategies programmable.**
+**A programmable strategy language for Event Contracts.**
 
-Circuit lets users compose node graphs, compile deterministic Strategy Manifests, and execute bounded trading programs for **dreamDEX Event Contracts**, approve a deterministic manifest, and execute across market windows on **Somnia**. A user-owned smart account holds the funds. On-chain Reactivity delivers market events. A keeper submits transactions that the Engine checks against the approved strategy.
+Circuit lets users compose node graphs, compile and approve deterministic Strategy Manifests, and execute bounded trading programs for **dreamDEX Event Contracts** across market windows on **Somnia**. A user-owned smart account holds the funds. On-chain Reactivity delivers market events. A keeper submits transactions that the Engine checks against the approved strategy.
 
 **[Architecture](ARCHITECTURE.md) · [Live demo](docs/LIVE_DEMO.md) · [Video](deployments/evidence/live-demo/circuit-live-cycle.mp4) · [Deployment](deployments/shannon.json) · [Acceptance evidence](docs/ACCEPTANCE.md)**
 
@@ -20,7 +20,13 @@ The intent assistant proposes rules without predictions or invented limits. Acti
 
 **Deployment:** The [Ladder-capable Engine, handler and linked smart account](deployments/shannon-programmable.json) are deployed and verified on Shannon. Update the three public frontend addresses to use this deployment. Initial account preparation is still required. Ladder has local execution tests; historical live evidence below is not a Ladder run.
 
-[Programmable P0 acceptance](docs/PROGRAMMABLE_P0.md) · [Jury demo script](docs/DEMO_SCRIPT.md)
+[Language and runtime evidence](docs/LANGUAGE_AND_RUNTIME.md) · [Programmable P0 acceptance](docs/PROGRAMMABLE_P0.md) · [Jury demo script](docs/DEMO_SCRIPT.md)
+
+### Reproduce the shared runtime proof
+
+`npm run test:programs` compiles the three shipped graphs and executes all of them against **one Engine address** on a fresh local Anvil chain. The [machine-readable result](deployments/evidence/local-three-programs.json) records **3 distinct manifests, 1 Engine and 8 settled rounds**, including individual transaction hashes, actual spending, next budgets and final stops. It also verifies rejection of a disconnected loss branch.
+
+This is a local mock-market/validator experiment, not a market-performance metric or proof that all three programs ran live. The historical Shannon receipts below remain the live execution evidence.
 
 ## A complete cycle, verified on Shannon
 
@@ -166,7 +172,7 @@ Local integration uses a mock venue and a local precompile fixture. The [Shannon
 
 The working live cycle is complete; the full PRD acceptance matrix remains tracked in [ACCEPTANCE.md](docs/ACCEPTANCE.md).
 
-- The builder follows a fixed v1 graph. Free node/edge composition and arbitrary programs are outside the current implementation.
+- The editor supports adding/removing/moving nodes and reconnecting ports. The compiler accepts a bounded v1 grammar with one of each supported node, explicit outcome branches and a STOP-guarded loop. Arbitrary graph topologies, multiple simultaneous conditions/orders and a general-purpose bytecode VM are not implemented.
 - The intent compiler is local. The planned Somnia Agent integration remains outstanding.
 - The recorded live proof covers BUY UP and a losing resolution. Live BUY DOWN, winning redemption and void acceptance remain open; winner/void paths have local contract coverage.
 - BTC/ETH and 15m/1h configurations are supported, but availability is checked on chain. The recorded run used 1h because the observed 15m series was stale.

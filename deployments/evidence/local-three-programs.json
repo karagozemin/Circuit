@@ -1,0 +1,1159 @@
+{
+  "scope": "LOCAL ANVIL + MOCK VENUE + IMPERSONATED VALIDATOR ONLY. Not live Shannon, live Reactivity subscription, real market liquidity or performance evidence.",
+  "verifiedAt": "2026-09-07T15:28:11.819Z",
+  "chainId": 31337,
+  "engine": "0x70ccc8c15ed13a90639420de98cf829e742c59bf",
+  "engineCodeHash": "0x63c94d344b2f0407dad4a7e0cfd5c6b81ac223383b9f8daa5427b5f2c0cccc37",
+  "engineDeployments": 1,
+  "programsExecuted": 3,
+  "settledRounds": 8,
+  "results": [
+    {
+      "program": "Contrarian Roller",
+      "engine": "0x70ccc8c15ed13a90639420de98cf829e742c59bf",
+      "strategyId": "0xae86cbe50fc419e527181173d6daa7333de496bdf1a6133e79b3745ac44b7b41",
+      "manifestHash": "0x98b9c30b9bc3a54db2812f7682315f222eeb7d72fe0459fa89817e85c5e021b7",
+      "graph": {
+        "version": 1,
+        "name": "Contrarian Roller",
+        "nodes": [
+          {
+            "id": "market",
+            "kind": "MARKET",
+            "data": {
+              "asset": "BTC",
+              "intervalSec": 900
+            },
+            "x": 40,
+            "y": 30
+          },
+          {
+            "id": "condition",
+            "kind": "CONDITION",
+            "data": {
+              "type": "LAST_FILL_PRICE_ABOVE",
+              "value": "0.700"
+            },
+            "x": 40,
+            "y": 165
+          },
+          {
+            "id": "buy",
+            "kind": "BUY",
+            "data": {
+              "type": "BUY_DOWN",
+              "maxCollateral": "10.0",
+              "maxSlippageBps": 200
+            },
+            "x": 40,
+            "y": 300
+          },
+          {
+            "id": "win_loss",
+            "kind": "WIN_LOSS",
+            "data": {
+              "incrementConsecutiveLosses": true,
+              "treatAsLoss": false,
+              "treatAsWin": false
+            },
+            "x": 40,
+            "y": 435
+          },
+          {
+            "id": "roll",
+            "kind": "ROLL",
+            "data": {
+              "rollPercent": 50
+            },
+            "x": 300,
+            "y": 440
+          },
+          {
+            "id": "stop",
+            "kind": "STOP",
+            "data": {
+              "maxTotalCapitalAtRisk": "20.0",
+              "maxRounds": 5,
+              "stopAfterConsecutiveLosses": 2,
+              "minSecondsToExpiry": 120
+            },
+            "x": 40,
+            "y": 590
+          }
+        ],
+        "edges": [
+          {
+            "from": "market",
+            "port": "next",
+            "to": "condition"
+          },
+          {
+            "from": "condition",
+            "port": "match",
+            "to": "buy"
+          },
+          {
+            "from": "buy",
+            "port": "resolved",
+            "to": "win_loss"
+          },
+          {
+            "from": "win_loss",
+            "port": "win",
+            "to": "roll"
+          },
+          {
+            "from": "win_loss",
+            "port": "loss",
+            "to": "stop"
+          },
+          {
+            "from": "win_loss",
+            "port": "void",
+            "to": "stop"
+          },
+          {
+            "from": "roll",
+            "port": "next",
+            "to": "stop"
+          },
+          {
+            "from": "stop",
+            "port": "next",
+            "to": "market"
+          }
+        ]
+      },
+      "manifest": {
+        "action": {
+          "maxCollateral": "10.0",
+          "maxSlippageBps": 200,
+          "type": "BUY_DOWN"
+        },
+        "name": "Contrarian Roller",
+        "policy": {
+          "maxRounds": 5,
+          "maxTotalCapitalAtRisk": "20.0",
+          "minSecondsToExpiry": 120,
+          "stopAfterConsecutiveLosses": 2
+        },
+        "resolution": {
+          "onLoss": {
+            "incrementConsecutiveLosses": true
+          },
+          "onVoid": {
+            "treatAsLoss": false,
+            "treatAsWin": false
+          },
+          "onWin": {
+            "rollPercent": 50
+          }
+        },
+        "series": {
+          "asset": "BTC",
+          "intervalSec": 900
+        },
+        "trigger": {
+          "type": "LAST_FILL_PRICE_ABOVE",
+          "value": "0.700"
+        },
+        "version": 1
+      },
+      "dsl": "price_above(0.700) → buy(DOWN,10.0) → on_win(roll 50%) → stop_after_losses(2)",
+      "rejectedDisconnectedLoss": [
+        "Connect WIN_LOSS.loss to STOP exactly once."
+      ],
+      "rounds": [
+        {
+          "round": 1,
+          "outcome": "WIN",
+          "orderBudget": "10",
+          "actualSpend": "1",
+          "cumulativeSpend": "1",
+          "nextBudget": "2",
+          "status": 6,
+          "stopReason": null,
+          "triggerHash": "0xdfe9d1c77b8c7da9c61c5194ba3ee222c2f83d24af21bbc5f0b1bb1e5c00c4cd",
+          "orderHash": "0x290b53c38b29dc011984c267b32e51c2a32088e860b77e7d96bade5ec2a33e26",
+          "resolutionHash": "0xc96e087772114a7762490517817b384a14bc1c91b33fb7bd4ec6d22ab8686a89"
+        },
+        {
+          "round": 2,
+          "outcome": "LOSS",
+          "orderBudget": "2",
+          "actualSpend": "1",
+          "cumulativeSpend": "2",
+          "nextBudget": "10",
+          "status": 6,
+          "stopReason": null,
+          "triggerHash": "0xf7e7845654db06ec4d4366948a36912b2c6373ac1ba3a4a781585ca670626dd4",
+          "orderHash": "0xa92db194feaff79f0a402008a601f692c3e8faf3e93bbd031f75b3ac47a69e29",
+          "resolutionHash": "0xc7db4e0c117dc9ec5c1f59d3dff89a59c5400f47103383827109e4e1b109ad19"
+        },
+        {
+          "round": 3,
+          "outcome": "LOSS",
+          "orderBudget": "10",
+          "actualSpend": "1",
+          "cumulativeSpend": "3",
+          "nextBudget": null,
+          "status": 8,
+          "stopReason": "CONSECUTIVE_LOSSES",
+          "triggerHash": "0xed9b34b38392267c4005c516d6fc672723b09075c972ece840e320d8dff23c2f",
+          "orderHash": "0xcbd13960a15badc55dc66d49bf0fde99c4d4ab7451160e2bf92a4f108254b4df",
+          "resolutionHash": "0x2f2e0da14e7da06083d0bd85fde0781f890da1bc2f633aea343e5e88bd3b6987"
+        }
+      ],
+      "finalState": {
+        "owner": "0x4cf6bCf3F97B1265DB33fEDa3062DaD732772337",
+        "manifestHash": "0x98b9c30b9bc3a54db2812f7682315f222eeb7d72fe0459fa89817e85c5e021b7",
+        "status": 8,
+        "pausedFrom": 0,
+        "currentMarketId": "0x0000000000000000000000000000000000000000000000000000000000000003",
+        "currentMarket": "0x56Ba8FEA3ec6194EE483495A641a7BCEEE6df475",
+        "currentPool": "0xf7C520BE3e2A2998342632AFD501D4A0BE882953",
+        "collateral": "0xF9a620E5628ECE19E12EA16CAd49C5A4e972754B",
+        "outcomeToken": "0x40043eB7Dd52340213FeE235b5cE910DA0Aad966",
+        "outcomeTokenId": "2",
+        "round": 3,
+        "consecutiveLosses": 2,
+        "cumulativeCapitalUsed": "3000000",
+        "currentPositionSize": "0",
+        "nextOrderBudget": "10000000",
+        "triggerFillPrice": "750000",
+        "executionAccount": "0x26304491ca6aA827fD2e92cD4b54Cae134e8aC66"
+      }
+    },
+    {
+      "program": "Conditional Ladder",
+      "engine": "0x70ccc8c15ed13a90639420de98cf829e742c59bf",
+      "strategyId": "0x47c7fc5fa619328ab975584aebf6dcd54ef68179927a6f366a4b35135d7ba4ac",
+      "manifestHash": "0x96004778a1933e9fcbbc6a22ddc054cdae30351b43d3479802cbbc270c23497b",
+      "graph": {
+        "version": 1,
+        "name": "Conditional Ladder",
+        "nodes": [
+          {
+            "id": "market",
+            "kind": "MARKET",
+            "data": {
+              "asset": "BTC",
+              "intervalSec": 3600
+            },
+            "x": 40,
+            "y": 30
+          },
+          {
+            "id": "condition",
+            "kind": "CONDITION",
+            "data": {
+              "type": "LAST_FILL_PRICE_BELOW",
+              "value": "0.400"
+            },
+            "x": 40,
+            "y": 165
+          },
+          {
+            "id": "buy",
+            "kind": "BUY",
+            "data": {
+              "type": "BUY_UP",
+              "maxCollateral": "10",
+              "maxSlippageBps": 200
+            },
+            "x": 40,
+            "y": 300
+          },
+          {
+            "id": "win_loss",
+            "kind": "WIN_LOSS",
+            "data": {
+              "incrementConsecutiveLosses": true,
+              "treatAsLoss": false,
+              "treatAsWin": false
+            },
+            "x": 40,
+            "y": 435
+          },
+          {
+            "id": "roll",
+            "kind": "ROLL",
+            "data": {
+              "rollPercent": 100,
+              "sizing": {
+                "mode": "WIN_LADDER",
+                "initialCollateral": "5",
+                "incrementCollateral": "2.5"
+              }
+            },
+            "x": 300,
+            "y": 440
+          },
+          {
+            "id": "stop",
+            "kind": "STOP",
+            "data": {
+              "maxTotalCapitalAtRisk": "25",
+              "maxRounds": 3,
+              "stopAfterConsecutiveLosses": 1,
+              "minSecondsToExpiry": 120
+            },
+            "x": 40,
+            "y": 590
+          }
+        ],
+        "edges": [
+          {
+            "from": "market",
+            "port": "next",
+            "to": "condition"
+          },
+          {
+            "from": "condition",
+            "port": "match",
+            "to": "buy"
+          },
+          {
+            "from": "buy",
+            "port": "resolved",
+            "to": "win_loss"
+          },
+          {
+            "from": "win_loss",
+            "port": "win",
+            "to": "roll"
+          },
+          {
+            "from": "win_loss",
+            "port": "loss",
+            "to": "stop"
+          },
+          {
+            "from": "win_loss",
+            "port": "void",
+            "to": "stop"
+          },
+          {
+            "from": "roll",
+            "port": "next",
+            "to": "stop"
+          },
+          {
+            "from": "stop",
+            "port": "next",
+            "to": "market"
+          }
+        ]
+      },
+      "manifest": {
+        "action": {
+          "maxCollateral": "10",
+          "maxSlippageBps": 200,
+          "sizing": {
+            "incrementCollateral": "2.5",
+            "initialCollateral": "5",
+            "mode": "WIN_LADDER"
+          },
+          "type": "BUY_UP"
+        },
+        "name": "Conditional Ladder",
+        "policy": {
+          "maxRounds": 3,
+          "maxTotalCapitalAtRisk": "25",
+          "minSecondsToExpiry": 120,
+          "stopAfterConsecutiveLosses": 1
+        },
+        "resolution": {
+          "onLoss": {
+            "incrementConsecutiveLosses": true
+          },
+          "onVoid": {
+            "treatAsLoss": false,
+            "treatAsWin": false
+          },
+          "onWin": {
+            "rollPercent": 100
+          }
+        },
+        "series": {
+          "asset": "BTC",
+          "intervalSec": 3600
+        },
+        "trigger": {
+          "type": "LAST_FILL_PRICE_BELOW",
+          "value": "0.400"
+        },
+        "version": 1
+      },
+      "dsl": "price_below(0.400) → buy(UP,10) → on_win(increase 2.5, start 5, max 10) → stop_after_losses(1)",
+      "rejectedDisconnectedLoss": [
+        "Connect WIN_LOSS.loss to STOP exactly once."
+      ],
+      "rounds": [
+        {
+          "round": 1,
+          "outcome": "WIN",
+          "orderBudget": "5",
+          "actualSpend": "5",
+          "cumulativeSpend": "5",
+          "nextBudget": "7.5",
+          "status": 6,
+          "stopReason": null,
+          "triggerHash": "0xd6f41589e49cb0222afb85cf0d90bd578eb17cb5a1f712c7141ee3d8e494a3db",
+          "orderHash": "0xd9a5901d4d676c505a491ec9229c65eff63c3f925df37d2c694d483b26e46afb",
+          "resolutionHash": "0x6213525c333222693124fac92b2ccb0323d17b6ebe7c34ec71af2170a4c4bd5f"
+        },
+        {
+          "round": 2,
+          "outcome": "WIN",
+          "orderBudget": "7.5",
+          "actualSpend": "7.5",
+          "cumulativeSpend": "12.5",
+          "nextBudget": "10",
+          "status": 6,
+          "stopReason": null,
+          "triggerHash": "0x3f8b2cd5853abf7b22a0c19f3095a610d45ee820101d1148da198c641a40cf46",
+          "orderHash": "0xae55a3fc0133601d21af75ddb9396dddab2f2445b711a2ddd54b3a26a0d06c80",
+          "resolutionHash": "0x890a68887167c5f6f0598159b3a07f4347f8ed341b43ab428b099d80a71b055d"
+        },
+        {
+          "round": 3,
+          "outcome": "WIN",
+          "orderBudget": "10",
+          "actualSpend": "10",
+          "cumulativeSpend": "22.5",
+          "nextBudget": null,
+          "status": 8,
+          "stopReason": "MAX_ROUNDS",
+          "triggerHash": "0x991ec8689feb905fea7ba273d6da355b70786bd771a7cef495755daf33fdc2f1",
+          "orderHash": "0xc0b1e302bb670453e778001f50db581cde97936b0126e4cad5c5c0e69288b217",
+          "resolutionHash": "0x6d5a6b0120b2c89a7c363a23b21f09aa3238aa1b220cfe215e199da64ffa641b"
+        }
+      ],
+      "finalState": {
+        "owner": "0x4cf6bCf3F97B1265DB33fEDa3062DaD732772337",
+        "manifestHash": "0x96004778a1933e9fcbbc6a22ddc054cdae30351b43d3479802cbbc270c23497b",
+        "status": 8,
+        "pausedFrom": 0,
+        "currentMarketId": "0x0000000000000000000000000000000000000000000000000000000000000006",
+        "currentMarket": "0xF2Dc39C450E4585b0428bEbEa16fd01A80b66d57",
+        "currentPool": "0xd15e5d32ecF41c6e3FC9B15DC391d9780d5f7125",
+        "collateral": "0xF9a620E5628ECE19E12EA16CAd49C5A4e972754B",
+        "outcomeToken": "0x40043eB7Dd52340213FeE235b5cE910DA0Aad966",
+        "outcomeTokenId": "1",
+        "round": 3,
+        "consecutiveLosses": 0,
+        "cumulativeCapitalUsed": "22500000",
+        "currentPositionSize": "0",
+        "nextOrderBudget": "10000000",
+        "triggerFillPrice": "250000",
+        "executionAccount": "0x2848Ce1d04F64AAd53D37A1D3A7c1d730256B948"
+      }
+    },
+    {
+      "program": "Bounded Streak",
+      "engine": "0x70ccc8c15ed13a90639420de98cf829e742c59bf",
+      "strategyId": "0xe5328d1419650dd24a90d88827d072dfd2b1ad69703588cd1d7703710ef46161",
+      "manifestHash": "0x497cd4c518a567930011babb657f25b10695a6ab95355f6c73d25641ce162701",
+      "graph": {
+        "version": 1,
+        "name": "Bounded Streak",
+        "nodes": [
+          {
+            "id": "market",
+            "kind": "MARKET",
+            "data": {
+              "asset": "ETH",
+              "intervalSec": 3600
+            },
+            "x": 40,
+            "y": 30
+          },
+          {
+            "id": "condition",
+            "kind": "CONDITION",
+            "data": {
+              "type": "LAST_FILL_PRICE_ABOVE",
+              "value": "0.600"
+            },
+            "x": 40,
+            "y": 165
+          },
+          {
+            "id": "buy",
+            "kind": "BUY",
+            "data": {
+              "type": "BUY_UP",
+              "maxCollateral": "3",
+              "maxSlippageBps": 100
+            },
+            "x": 40,
+            "y": 300
+          },
+          {
+            "id": "win_loss",
+            "kind": "WIN_LOSS",
+            "data": {
+              "incrementConsecutiveLosses": true,
+              "treatAsLoss": false,
+              "treatAsWin": false
+            },
+            "x": 40,
+            "y": 435
+          },
+          {
+            "id": "roll",
+            "kind": "ROLL",
+            "data": {
+              "rollPercent": 50
+            },
+            "x": 300,
+            "y": 440
+          },
+          {
+            "id": "stop",
+            "kind": "STOP",
+            "data": {
+              "maxTotalCapitalAtRisk": "12",
+              "maxRounds": 4,
+              "stopAfterConsecutiveLosses": 1,
+              "minSecondsToExpiry": 120
+            },
+            "x": 40,
+            "y": 590
+          }
+        ],
+        "edges": [
+          {
+            "from": "market",
+            "port": "next",
+            "to": "condition"
+          },
+          {
+            "from": "condition",
+            "port": "match",
+            "to": "buy"
+          },
+          {
+            "from": "buy",
+            "port": "resolved",
+            "to": "win_loss"
+          },
+          {
+            "from": "win_loss",
+            "port": "win",
+            "to": "roll"
+          },
+          {
+            "from": "win_loss",
+            "port": "loss",
+            "to": "stop"
+          },
+          {
+            "from": "win_loss",
+            "port": "void",
+            "to": "stop"
+          },
+          {
+            "from": "roll",
+            "port": "next",
+            "to": "stop"
+          },
+          {
+            "from": "stop",
+            "port": "next",
+            "to": "market"
+          }
+        ]
+      },
+      "manifest": {
+        "action": {
+          "maxCollateral": "3",
+          "maxSlippageBps": 100,
+          "type": "BUY_UP"
+        },
+        "name": "Bounded Streak",
+        "policy": {
+          "maxRounds": 4,
+          "maxTotalCapitalAtRisk": "12",
+          "minSecondsToExpiry": 120,
+          "stopAfterConsecutiveLosses": 1
+        },
+        "resolution": {
+          "onLoss": {
+            "incrementConsecutiveLosses": true
+          },
+          "onVoid": {
+            "treatAsLoss": false,
+            "treatAsWin": false
+          },
+          "onWin": {
+            "rollPercent": 50
+          }
+        },
+        "series": {
+          "asset": "ETH",
+          "intervalSec": 3600
+        },
+        "trigger": {
+          "type": "LAST_FILL_PRICE_ABOVE",
+          "value": "0.600"
+        },
+        "version": 1
+      },
+      "dsl": "price_above(0.600) → buy(UP,3) → on_win(roll 50%) → stop_after_losses(1)",
+      "rejectedDisconnectedLoss": [
+        "Connect WIN_LOSS.loss to STOP exactly once."
+      ],
+      "rounds": [
+        {
+          "round": 1,
+          "outcome": "WIN",
+          "orderBudget": "3",
+          "actualSpend": "3",
+          "cumulativeSpend": "3",
+          "nextBudget": "2",
+          "status": 6,
+          "stopReason": null,
+          "triggerHash": "0x9abcd8668691a73acfb756d75db964d9cd210075f92e1a9f1724534f9484cab7",
+          "orderHash": "0xdf8e51c91ac02d35f5afd10910dd0815131f2e2afd9d703bb8cc03ab7bfa6857",
+          "resolutionHash": "0x8e8f402af55fb6908a95aae487d5c3d09bde4bf3e463aa8f94755f23cd6f6d42"
+        },
+        {
+          "round": 2,
+          "outcome": "LOSS",
+          "orderBudget": "2",
+          "actualSpend": "1.5",
+          "cumulativeSpend": "4.5",
+          "nextBudget": null,
+          "status": 8,
+          "stopReason": "CONSECUTIVE_LOSSES",
+          "triggerHash": "0x9c8f0f16afdf5f776c25ca588b6fcff4767c5e883ebcbd1e4355e547b45f05f0",
+          "orderHash": "0x1ed8ef2bf1adcf343d1b01b068237c54d590f8dcbe0a76cb26ae1e8651cb01ab",
+          "resolutionHash": "0x9f2d6c9ec722997c9ae1db5d609503f8dcb305b81d515749aa1ec3b9e2148e78"
+        }
+      ],
+      "finalState": {
+        "owner": "0x4cf6bCf3F97B1265DB33fEDa3062DaD732772337",
+        "manifestHash": "0x497cd4c518a567930011babb657f25b10695a6ab95355f6c73d25641ce162701",
+        "status": 8,
+        "pausedFrom": 0,
+        "currentMarketId": "0x0000000000000000000000000000000000000000000000000000000000000008",
+        "currentMarket": "0x66f391197C2c55a012E9Db7d0F618394f19d2cF8",
+        "currentPool": "0x3Fbe13095dc1317108a780791A59ec0308cDfdcA",
+        "collateral": "0xF9a620E5628ECE19E12EA16CAd49C5A4e972754B",
+        "outcomeToken": "0x40043eB7Dd52340213FeE235b5cE910DA0Aad966",
+        "outcomeTokenId": "1",
+        "round": 2,
+        "consecutiveLosses": 1,
+        "cumulativeCapitalUsed": "4500000",
+        "currentPositionSize": "0",
+        "nextOrderBudget": "2000000",
+        "triggerFillPrice": "750000",
+        "executionAccount": "0x33f9CCf6384e5D9B86C800650Cf21E16b9a5d107"
+      }
+    }
+  ],
+  "transactions": [
+    {
+      "label": "deploy MockCollateral",
+      "hash": "0x807e74d65439289ad5a8816c886e00f1a39fbd40dece6c4eba9682b662380308",
+      "block": "1"
+    },
+    {
+      "label": "deploy MockOutcome",
+      "hash": "0x8115a1f1268b3106868f337924f6eb3877212a46a845d7889203831228b71222",
+      "block": "2"
+    },
+    {
+      "label": "deploy MockBinaryPool",
+      "hash": "0xd354c3dd1ca08023f243736a6c35d30c514cd5af5c3d8c9468293aabd8bccabb",
+      "block": "3"
+    },
+    {
+      "label": "deploy MockBinaryMarket",
+      "hash": "0x7e6a18aa838f9ebebb89e4fe922c24db23cb7e34b9d86ce08cb633da3acb494a",
+      "block": "4"
+    },
+    {
+      "label": "deploy MockBinaryModule",
+      "hash": "0x1abae789e831621976b7241b8a4da9ac504b00750086a75d7abf552fd89ad5a7",
+      "block": "5"
+    },
+    {
+      "label": "deploy CircuitEngine",
+      "hash": "0xe5363d222e2768c4d48ac24571173afd773827ae5db9d72a31cdc1e27e985f7e",
+      "block": "6"
+    },
+    {
+      "label": "deploy CircuitReactivityHandler",
+      "hash": "0xe198b90be4c773a1ddbbfb7018d192078ab3d758ef663e6ce3818c644fbc958b",
+      "block": "7"
+    },
+    {
+      "label": "setReactivityHandler",
+      "hash": "0x519cbaf56c3166fd889b1573196baaea7e965d1d8a43490e3be5b72cad401dd9",
+      "block": "8"
+    },
+    {
+      "label": "deploy CircuitSmartAccount",
+      "hash": "0x5fce363ca31122c055fac79b2667ae39a0240baf943938d64efd0dd609c3acf5",
+      "block": "9"
+    },
+    {
+      "label": "setBalance",
+      "hash": "0x7071f9dbbd2e639ace21b627c6f4c13cd55befa73fc397986db7e8741440d850",
+      "block": "10"
+    },
+    {
+      "label": "useInterval",
+      "hash": "0x23bdf52d77bf7b9ed4099266992123b0b0a0f21b25fef7f8079d7168cf5177c3",
+      "block": "11"
+    },
+    {
+      "label": "deploy MockBinaryPool",
+      "hash": "0x6b98e331393eb5c506441ef9687c56087ededa59467ce142eea34227775edf42",
+      "block": "12"
+    },
+    {
+      "label": "deploy MockBinaryMarket",
+      "hash": "0xea832bf8def8b642bc16b87519cb3840d0c3ff0e999c599f536042a8613e110c",
+      "block": "13"
+    },
+    {
+      "label": "useMarket",
+      "hash": "0xa8a653498c93f0247d7e555c9f45e7f0f6eccf0e461118e41017d74ed2278732",
+      "block": "14"
+    },
+    {
+      "label": "createConfiguredStrategy",
+      "hash": "0x3d96a26767a2bbe80203aeaecc834a412626533e0012f5c5c1857ffc3f192ebc",
+      "block": "15"
+    },
+    {
+      "label": "activateStrategy",
+      "hash": "0x4f0319d728483bb8b2f65c3d1ebeb555cb2dbdeb94b7b26d0fd4e0f5c2326431",
+      "block": "16"
+    },
+    {
+      "label": "configure",
+      "hash": "0xde2e8bd753adcf87fe86ef0e98013bad378c97ddbfa83658374635b64a3cd155",
+      "block": "17"
+    },
+    {
+      "label": "local mock validator dispatch",
+      "hash": "0xdfe9d1c77b8c7da9c61c5194ba3ee222c2f83d24af21bbc5f0b1bb1e5c00c4cd",
+      "block": "18"
+    },
+    {
+      "label": "executeReadyAction",
+      "hash": "0x290b53c38b29dc011984c267b32e51c2a32088e860b77e7d96bade5ec2a33e26",
+      "block": "19"
+    },
+    {
+      "label": "setWinner",
+      "hash": "0x799c9c26494e9d27065b28a091f6b6960238adf3bae765a876d3f531e8bdad23",
+      "block": "20"
+    },
+    {
+      "label": "setStatus",
+      "hash": "0x00aebb4851f908676f782a1400c4ed4d1ab024509fb5c6cc42e61465467fdab1",
+      "block": "21"
+    },
+    {
+      "label": "local mock validator dispatch",
+      "hash": "0xc96e087772114a7762490517817b384a14bc1c91b33fb7bd4ec6d22ab8686a89",
+      "block": "22"
+    },
+    {
+      "label": "deploy MockBinaryPool",
+      "hash": "0x95b3bfb76c1949eee8c1544f52910b17d3d1554b6b2064cc3cb88578fafad70d",
+      "block": "24"
+    },
+    {
+      "label": "deploy MockBinaryMarket",
+      "hash": "0x6b56f9dd3aaf3e0bab5257ef6ba7a742af3d0fc84baccf77eddc3aec8fe2a45c",
+      "block": "25"
+    },
+    {
+      "label": "useMarket",
+      "hash": "0x49be2f290854ad4bf75b7da2e86fe5a372c299b8a8eb04de252938dae963bc43",
+      "block": "26"
+    },
+    {
+      "label": "bindMarket",
+      "hash": "0x0db2e0a5c6aea19b3d07a7624fa4d402791367c532d4a7f7d07fe618fb221ba5",
+      "block": "27"
+    },
+    {
+      "label": "configure",
+      "hash": "0xbe2d8e59137163277b0d3968aa07ee39de598d418b4b8fd8afeb2d2d3823bbcf",
+      "block": "28"
+    },
+    {
+      "label": "local mock validator dispatch",
+      "hash": "0xf7e7845654db06ec4d4366948a36912b2c6373ac1ba3a4a781585ca670626dd4",
+      "block": "29"
+    },
+    {
+      "label": "executeReadyAction",
+      "hash": "0xa92db194feaff79f0a402008a601f692c3e8faf3e93bbd031f75b3ac47a69e29",
+      "block": "30"
+    },
+    {
+      "label": "setWinner",
+      "hash": "0x9b3f0892b31c9968a9c87d33eef686bebf831054fefa1b35d6417e21fcf6cb4f",
+      "block": "31"
+    },
+    {
+      "label": "setStatus",
+      "hash": "0x0f6cf830dd724555b1bb58abe88212ac55fe3e0b5b00108778df2c2c3ee7be5c",
+      "block": "32"
+    },
+    {
+      "label": "local mock validator dispatch",
+      "hash": "0xc7db4e0c117dc9ec5c1f59d3dff89a59c5400f47103383827109e4e1b109ad19",
+      "block": "33"
+    },
+    {
+      "label": "deploy MockBinaryPool",
+      "hash": "0x90caa5d7eecbeb08f82eb3aa5c96529e4b862e337d5db2cde54152784dc5ecab",
+      "block": "35"
+    },
+    {
+      "label": "deploy MockBinaryMarket",
+      "hash": "0x8dbbf7e87f874b244271f8b82a8988a141eb9b642becb567192ce06f784c6342",
+      "block": "36"
+    },
+    {
+      "label": "useMarket",
+      "hash": "0xdc2476005e1dea65ca2dc2c29a27b36062a1c113e05101407a5d179a433b539b",
+      "block": "37"
+    },
+    {
+      "label": "bindMarket",
+      "hash": "0x0f52ca6a9a92d3f00c9920129c875a4ff10bd641f842c63f7a35586f5d487a58",
+      "block": "38"
+    },
+    {
+      "label": "configure",
+      "hash": "0xd2c8db80ae2fbbf5b6461a1a2567fab8c4267742f7e33841e14efab1bb1c34a9",
+      "block": "39"
+    },
+    {
+      "label": "local mock validator dispatch",
+      "hash": "0xed9b34b38392267c4005c516d6fc672723b09075c972ece840e320d8dff23c2f",
+      "block": "40"
+    },
+    {
+      "label": "executeReadyAction",
+      "hash": "0xcbd13960a15badc55dc66d49bf0fde99c4d4ab7451160e2bf92a4f108254b4df",
+      "block": "41"
+    },
+    {
+      "label": "setWinner",
+      "hash": "0xd9ef67a72791de66a679fa6f21e6e6e3602db44124f3ddf4fcd49d6f53e348ca",
+      "block": "42"
+    },
+    {
+      "label": "setStatus",
+      "hash": "0xa2a67ff6f021b45bd1250ab37ff79d45ae9728404341440b631518596a6aba2b",
+      "block": "43"
+    },
+    {
+      "label": "local mock validator dispatch",
+      "hash": "0x2f2e0da14e7da06083d0bd85fde0781f890da1bc2f633aea343e5e88bd3b6987",
+      "block": "44"
+    },
+    {
+      "label": "deploy CircuitSmartAccount",
+      "hash": "0x994d080b4ab281390505aaa2d29eb67ee66665b22240073b37a363874dc31144",
+      "block": "45"
+    },
+    {
+      "label": "setBalance",
+      "hash": "0x41e33159531f2056b9a78ba40a090d9e863d4a9fd749b3b6a73583fdacadd6fd",
+      "block": "46"
+    },
+    {
+      "label": "useInterval",
+      "hash": "0xbc96611357efa667e0afac23566088f5ee5afda88c9e726b1940add812445d3b",
+      "block": "47"
+    },
+    {
+      "label": "deploy MockBinaryPool",
+      "hash": "0xe158cf755f16c81d47b9d13912e7fbc62654456a6c8bde4d0279cf97b08dad9e",
+      "block": "48"
+    },
+    {
+      "label": "deploy MockBinaryMarket",
+      "hash": "0x34a6008d0b8e31e472ee5ff8b237bd91727301383310086125c002d64176877f",
+      "block": "49"
+    },
+    {
+      "label": "useMarket",
+      "hash": "0x9f3d28656ca700c38ec65ca9fbd6b72ccab7e8e29cd6a5f3e9b2a9d040775cf6",
+      "block": "50"
+    },
+    {
+      "label": "createConfiguredLadderStrategy",
+      "hash": "0x96f6e22922441bcf1b3caf20fbe6d294fa8790ae2da35a5f81e31c55d0cb2b2f",
+      "block": "51"
+    },
+    {
+      "label": "activateStrategy",
+      "hash": "0xf972f3e388f1fa4646c81148ffe26117ea1637c6636697ea5eae50ce2b51e613",
+      "block": "52"
+    },
+    {
+      "label": "configure",
+      "hash": "0x68df2422802209f88380ffaf9e6384af4517efd4bf49f4ea7326b252c1b682e9",
+      "block": "53"
+    },
+    {
+      "label": "local mock validator dispatch",
+      "hash": "0xd6f41589e49cb0222afb85cf0d90bd578eb17cb5a1f712c7141ee3d8e494a3db",
+      "block": "54"
+    },
+    {
+      "label": "executeReadyAction",
+      "hash": "0xd9a5901d4d676c505a491ec9229c65eff63c3f925df37d2c694d483b26e46afb",
+      "block": "55"
+    },
+    {
+      "label": "setWinner",
+      "hash": "0x091b1a378b25f2e7753403060483c285fc75857a21dfece0acb2443aeda4909c",
+      "block": "56"
+    },
+    {
+      "label": "setStatus",
+      "hash": "0x2a3627c7ed3f8a494d8c4e26fd582450e672418eea67006ba44b8d3d60616211",
+      "block": "57"
+    },
+    {
+      "label": "local mock validator dispatch",
+      "hash": "0x6213525c333222693124fac92b2ccb0323d17b6ebe7c34ec71af2170a4c4bd5f",
+      "block": "58"
+    },
+    {
+      "label": "deploy MockBinaryPool",
+      "hash": "0x1f52ac83ec264a362150e524764b8b70c2abc154dd07b392944b5e2d86b97057",
+      "block": "60"
+    },
+    {
+      "label": "deploy MockBinaryMarket",
+      "hash": "0x0093f95d27a0f865fc305b78b31c9d4a77f8eacf7c668a57573ae2bd84540eca",
+      "block": "61"
+    },
+    {
+      "label": "useMarket",
+      "hash": "0x4d0fca8f7b8327637cab7386ec490d31a4e68b69f62e2f30cc74dbc80c44c9dd",
+      "block": "62"
+    },
+    {
+      "label": "bindMarket",
+      "hash": "0x31287ba603a63657da9408509398c6990ee1a2ea89c86e5e680aa2513c5b100d",
+      "block": "63"
+    },
+    {
+      "label": "configure",
+      "hash": "0x27dd158d6fc698ad8d450ccdd146e6aaf95d58cfff7090f7f574f1c2223ff618",
+      "block": "64"
+    },
+    {
+      "label": "local mock validator dispatch",
+      "hash": "0x3f8b2cd5853abf7b22a0c19f3095a610d45ee820101d1148da198c641a40cf46",
+      "block": "65"
+    },
+    {
+      "label": "executeReadyAction",
+      "hash": "0xae55a3fc0133601d21af75ddb9396dddab2f2445b711a2ddd54b3a26a0d06c80",
+      "block": "66"
+    },
+    {
+      "label": "setWinner",
+      "hash": "0x03ceb5ff236d659ce55a32800ea0c0c9ad19589c5ab758a7c3e70d86e9fe0412",
+      "block": "67"
+    },
+    {
+      "label": "setStatus",
+      "hash": "0x986a1e6202799d0c5b8b7514c73c69b32a08dd7d09166a1fa794476e971311b8",
+      "block": "68"
+    },
+    {
+      "label": "local mock validator dispatch",
+      "hash": "0x890a68887167c5f6f0598159b3a07f4347f8ed341b43ab428b099d80a71b055d",
+      "block": "69"
+    },
+    {
+      "label": "deploy MockBinaryPool",
+      "hash": "0x91a723a509ed2dc0ef6b0431411817e7a0339d01c98cdd40187fe1e4944e62f4",
+      "block": "71"
+    },
+    {
+      "label": "deploy MockBinaryMarket",
+      "hash": "0xae87057149059f65a78ad9fa17ee0abbebfbe459cfb503f1c1f818ff38f979b8",
+      "block": "72"
+    },
+    {
+      "label": "useMarket",
+      "hash": "0x0fb962e2054f5f284f20cde186fa1bbcd4afc4566285af2fb266b841d74f4624",
+      "block": "73"
+    },
+    {
+      "label": "bindMarket",
+      "hash": "0x2fd71523b9fb96266a37ecdde8a212b611b200a9010d3b91f6cdef4d571ea887",
+      "block": "74"
+    },
+    {
+      "label": "configure",
+      "hash": "0x3e69c83b9415c2325dc59c34b5dd165a8ba941e10e60fb2187724df3fb8e4087",
+      "block": "75"
+    },
+    {
+      "label": "local mock validator dispatch",
+      "hash": "0x991ec8689feb905fea7ba273d6da355b70786bd771a7cef495755daf33fdc2f1",
+      "block": "76"
+    },
+    {
+      "label": "executeReadyAction",
+      "hash": "0xc0b1e302bb670453e778001f50db581cde97936b0126e4cad5c5c0e69288b217",
+      "block": "77"
+    },
+    {
+      "label": "setWinner",
+      "hash": "0x8e5064b71e8381c1f48ae471bb16d4577d5dd812ac8b52deb8302cc92560e5c4",
+      "block": "78"
+    },
+    {
+      "label": "setStatus",
+      "hash": "0x5efd81a57b722635fc1dcc41830a3258aa375d8a006840d375fb0898ceeac689",
+      "block": "79"
+    },
+    {
+      "label": "local mock validator dispatch",
+      "hash": "0x6d5a6b0120b2c89a7c363a23b21f09aa3238aa1b220cfe215e199da64ffa641b",
+      "block": "80"
+    },
+    {
+      "label": "deploy CircuitSmartAccount",
+      "hash": "0xca83865d37b976f0a6c43d622ef1a4b788017ab739bd44fb7b167190212256c8",
+      "block": "81"
+    },
+    {
+      "label": "setBalance",
+      "hash": "0x5ffc677fa439547da79b434b4c5aec0f2f8fa1ce7c8d020d797b08b145da5c92",
+      "block": "82"
+    },
+    {
+      "label": "useInterval",
+      "hash": "0x4692b0c1951b7a7c9dc5caf4ff08ad76048df84b1713a888cb09cec2d6319ee6",
+      "block": "83"
+    },
+    {
+      "label": "deploy MockBinaryPool",
+      "hash": "0x198c7b13e856694c70a61042e2b2dcdaed89d5b7182e05482bc83b27baaf9c45",
+      "block": "84"
+    },
+    {
+      "label": "deploy MockBinaryMarket",
+      "hash": "0x78b61eb358df981e740efd4cc4b70fa613ee107fa92295d94fc524f51f2866a5",
+      "block": "85"
+    },
+    {
+      "label": "useMarket",
+      "hash": "0x903564b7bc5f2f5bd5317fdb2de8d2edbb513a50890bfcb23078ff3a0809ee51",
+      "block": "86"
+    },
+    {
+      "label": "createConfiguredStrategy",
+      "hash": "0xdbb6721bd1f5c3f7f9be8016a2f497f2baa8a8069d5268f0c90f32d42698cba9",
+      "block": "87"
+    },
+    {
+      "label": "activateStrategy",
+      "hash": "0xa881562295d331a45a55e4e35896c10c72323bc12146a6673fcf4aad371ae3b0",
+      "block": "88"
+    },
+    {
+      "label": "configure",
+      "hash": "0xe77b2739eaac2506ce5004b6ae9f1571f944658529cb82bd2c299aa44a5d6dd8",
+      "block": "89"
+    },
+    {
+      "label": "local mock validator dispatch",
+      "hash": "0x9abcd8668691a73acfb756d75db964d9cd210075f92e1a9f1724534f9484cab7",
+      "block": "90"
+    },
+    {
+      "label": "executeReadyAction",
+      "hash": "0xdf8e51c91ac02d35f5afd10910dd0815131f2e2afd9d703bb8cc03ab7bfa6857",
+      "block": "91"
+    },
+    {
+      "label": "setWinner",
+      "hash": "0x4f28748987109ebf10b6f8452478299bbebe2b5b922137cb508bc0ca7c0ba4c9",
+      "block": "92"
+    },
+    {
+      "label": "setStatus",
+      "hash": "0xda70730fa28f4494c6133b86317f49e3efc8f681c6693a7729d12030597f9ef5",
+      "block": "93"
+    },
+    {
+      "label": "local mock validator dispatch",
+      "hash": "0x8e8f402af55fb6908a95aae487d5c3d09bde4bf3e463aa8f94755f23cd6f6d42",
+      "block": "94"
+    },
+    {
+      "label": "deploy MockBinaryPool",
+      "hash": "0xcc290244891c7d600fe3c567fcff32aa90edc6a2afc352cadb9803ce40bd283e",
+      "block": "96"
+    },
+    {
+      "label": "deploy MockBinaryMarket",
+      "hash": "0x4cab1d73f557a77ba18b97f77f0aeb12fd3e3bfea34567cd40f27fcb0e9b86ad",
+      "block": "97"
+    },
+    {
+      "label": "useMarket",
+      "hash": "0x3f069210139d34f49da28e1e15ae4db450c5dcd51747d4c329680b291f0415b3",
+      "block": "98"
+    },
+    {
+      "label": "bindMarket",
+      "hash": "0x176676b5076f8c3e6824848f92f73a4a722a58234fceb552284dad3e364d8636",
+      "block": "99"
+    },
+    {
+      "label": "configure",
+      "hash": "0xeccf4a9b30471bf167426b53a4dd1094db0b8a43686e567f2949b5d573dd1f02",
+      "block": "100"
+    },
+    {
+      "label": "local mock validator dispatch",
+      "hash": "0x9c8f0f16afdf5f776c25ca588b6fcff4767c5e883ebcbd1e4355e547b45f05f0",
+      "block": "101"
+    },
+    {
+      "label": "executeReadyAction",
+      "hash": "0x1ed8ef2bf1adcf343d1b01b068237c54d590f8dcbe0a76cb26ae1e8651cb01ab",
+      "block": "102"
+    },
+    {
+      "label": "setWinner",
+      "hash": "0xa44f9792e92914d57a84e35d12122481f735da76789e4eecf08db55213a46f6e",
+      "block": "103"
+    },
+    {
+      "label": "setStatus",
+      "hash": "0x16017910cff5a3e346b28d43e870e290ca0c442ae14707a57c95091ae5cac011",
+      "block": "104"
+    },
+    {
+      "label": "local mock validator dispatch",
+      "hash": "0x9f2d6c9ec722997c9ae1db5d609503f8dcb305b81d515749aa1ec3b9e2148e78",
+      "block": "105"
+    }
+  ]
+}

@@ -20,7 +20,8 @@
     "keeper": "forge build && node --env-file=.env.local --import tsx scripts/keeper.ts",
     "live:check": "node --env-file=.env.local --import tsx scripts/check-live.ts",
     "test:keeper": "forge build && tsx scripts/test-keeper.ts",
-    "contracts:abi": "forge build && tsx scripts/generate-abi.ts"
+    "contracts:abi": "forge build && tsx scripts/generate-abi.ts",
+    "test:programs": "forge build && tsx scripts/test-programs.ts"
   },
   "dependencies": {
     "@somnia-chain/markets-sdk": "^0.29.0",

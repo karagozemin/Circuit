@@ -149,11 +149,13 @@ contract MockBinaryModule is IBinaryModule {
     MockBinaryMarket public market;
     MockCollateral public collateral;
     MockOutcome public outcome;
+    uint64 public intervalSec = 900;
+    function useInterval(uint64 seconds_) external { intervalSec = seconds_; }
     constructor(MockBinaryMarket m, MockCollateral c, MockOutcome o) { market = m; collateral = c; outcome = o; }
     function markets(bytes32) external view returns (MarketRecord memory record) {
         record.market = address(market); record.pool = market.pool(); record.collateral = address(collateral);
         record.creator = address(this); record.outcomeSlotCount = 2; record.yesId = 1; record.noId = 2;
-        record.expiry = market.expiry(); record.tradingStart = record.expiry - 900;
+        record.expiry = market.expiry(); record.tradingStart = record.expiry - intervalSec;
     }
     function useMarket(MockBinaryMarket m) external { market = m; }
     function redeem(uint32, bytes32, bytes32, uint8 side, uint256 amount) external {
