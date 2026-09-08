@@ -4,17 +4,27 @@
 
 # Circuit
 
-**A programmable strategy language for Event Contracts.**
+**Program dreamDEX, don't just trade it.**
 
-Circuit lets users compose node graphs, compile and approve deterministic Strategy Manifests, and execute bounded trading programs for **dreamDEX Event Contracts** across market windows on **Somnia**. A user-owned smart account holds the funds. On-chain Reactivity delivers market events. A keeper submits transactions that the Engine checks against the approved strategy.
+Circuit is the programmable strategy layer for dreamDEX Event Contracts. Visually compose trading logic, compile it into a deterministic bounded program, and let Somnia Reactivity advance it across live dreamDEX market windows.
 
-**[Architecture](ARCHITECTURE.md) · [Live demo](docs/LIVE_DEMO.md) · [Video](deployments/evidence/live-demo/circuit-live-cycle.mp4) · [Deployment](deployments/shannon.json) · [Acceptance evidence](docs/ACCEPTANCE.md)**
+**Most trading apps automate one strategy. Circuit provides the compiler and runtime to build many.**
+
+[Live demo](docs/LIVE_DEMO.md) · [59s on-chain proof](deployments/evidence/live-demo/circuit-live-cycle.mp4) · [Architecture](ARCHITECTURE.md) · [Shannon deployment](deployments/shannon.json)
 
 ## Compose → Compile → Execute → React
 
-The visual editor supports adding, removing, moving and connecting **MARKET → CONDITION → BUY → WIN/LOSS → ROLL → STOP** nodes. The actual graph compiler validates the bounded control flow and produces the manifest the wallet authorizes. Rule or connection edits require recompilation. Layout changes do not change the program.
+MARKET → CONDITION → BUY → WIN / LOSS → ROLL → STOP
 
-**Same engine. Three different trading programs:** Contrarian Roller, Conditional Ladder and Bounded Streak. Conditional Ladder starts at 5 tUSDC, increases by 2.5 after each settled win up to 10, stops on the first loss, and respects its 25 tUSDC lifetime cap and 3-round limit. The other programs roll a percentage of real redeemed proceeds with different entry and stop rules.
+Circuit's visual builder is not a workflow mock: every graph is validated and compiled into a canonical Strategy Manifest with an explicit risk envelope. The user approves that program before execution. Rule or connection edits require recompilation. Layout changes do not change the program.
+
+Execution runs from a user-owned smart account: on-chain Reactivity delivers market events, and a keeper submits transactions that the Engine checks against the approved strategy. The same Engine currently runs three different programs:
+
+- **Contrarian Roller** — fade an overpriced side and roll a percentage of redeemed proceeds
+- **Conditional Ladder** — start at 5 tUSDC, increase by 2.5 after each settled win up to 10, stop immediately on the first loss, inside its 25 tUSDC lifetime cap and 3-round limit
+- **Bounded Streak** — continue while conditions hold, always inside fixed capital and round caps
+
+**Same compiler. Same runtime. Different programs.**
 
 The intent assistant proposes rules without predictions or invented limits. Activity shows state, exposure limits, last/next actions and an execution checklist backed by real event receipts and subscription reads.
 
@@ -22,13 +32,26 @@ The intent assistant proposes rules without predictions or invented limits. Acti
 
 [Language and runtime evidence](docs/LANGUAGE_AND_RUNTIME.md) · [Programmable P0 acceptance](docs/PROGRAMMABLE_P0.md) · [Jury demo script](docs/DEMO_SCRIPT.md)
 
-### Reproduce the shared runtime proof
+## Proven on Shannon
 
-`npm run test:programs` compiles the three shipped graphs and executes all of them against **one Engine address** on a fresh local Anvil chain. The [machine-readable result](deployments/evidence/local-three-programs.json) records **3 distinct manifests, 1 Engine and 8 settled rounds**, including individual transaction hashes, actual spending, next budgets and final stops. It also verifies rejection of a disconnected loss branch.
+Circuit has completed a real Event Contract lifecycle on Somnia Shannon:
 
-This is a local mock-market/validator experiment, not a market-performance metric or proof that all three programs ran live. The historical Shannon receipts below remain the live execution evidence.
+**Activate → Reactivity → dreamDEX order → Fill → Resolution → Redeem → Successor → Round 2**
 
-## A complete cycle, verified on Shannon
+### Recorded proof
+
+- 1 real dreamDEX strategy lifecycle
+- 2 autonomous Reactivity callbacks
+- automatic successor authorization
+- real on-chain fill and settlement
+- 3 distinct programs executed against the same Engine locally
+- 8 settled runtime-test rounds
+- 26 TypeScript tests
+- 37 Forge tests
+
+[Watch the 59-second proof](deployments/evidence/live-demo/circuit-live-cycle.mp4) · [Inspect transactions](deployments/evidence/live-demo/audit.json) · [Open evidence audit](deployments/evidence/live-demo/index.html)
+
+### The verified lifecycle
 
 On **6 September 2026**, Circuit completed a real testnet lifecycle:
 
@@ -58,11 +81,30 @@ This capture shows the position awaiting resolution. The completed result and fi
 
 </details>
 
+## Why Circuit is different
+
+A fixed trading bot answers:
+
+> "What should this strategy do?"
+
+Circuit answers:
+
+> "How can any bounded strategy be expressed, reviewed and executed?"
+
+Circuit separates four concerns:
+
+- **Compose** — express strategy logic visually
+- **Compile** — turn the graph into a deterministic manifest
+- **Execute** — enforce only the approved actions and risk limits
+- **React** — advance state from verified Somnia / dreamDEX events
+
+This makes strategies reusable programs rather than hard-coded application behavior.
+
 ## Why Circuit exists
 
 A rolling event market gives each window its own market identity, expiry and pool. A recurring strategy therefore needs more than an entry signal: it must verify the current venue, respect an execution budget, settle the position and authorize the correct successor.
 
-Circuit expresses those decisions in a reviewable strategy and enforces the supported rules through one Engine. The current builder exposes a **structured strategy graph** with configurable thresholds, sides and policies. Its topology follows the supported v1 lifecycle.
+Circuit expresses those decisions in a reviewable strategy and enforces the supported rules through one Engine. Circuit v1 intentionally uses a **bounded strategy grammar**: expressive enough to produce distinct trading programs while remaining reviewable and enforceable on-chain.
 
 For example, the Contrarian Roller configuration expresses:
 
@@ -91,6 +133,12 @@ This is a configuration example. The recorded live demo used a separately approv
 The capital cap currently measures **cumulative collateral spent**. Redemptions do not replenish it. A successful order consumes that lifetime budget even when its position later wins.
 
 For the component map, transaction sequence, state machine, accounting equations and authority model, read **[ARCHITECTURE.md](ARCHITECTURE.md)**.
+
+## Reproduce the shared runtime proof
+
+`npm run test:programs` compiles the three shipped graphs and executes all of them against **one Engine address** on a fresh local Anvil chain. The [machine-readable result](deployments/evidence/local-three-programs.json) records **3 distinct manifests, 1 Engine and 8 settled rounds**, including individual transaction hashes, actual spending, next budgets and final stops. It also verifies rejection of a disconnected loss branch.
+
+This is a local mock-market/validator experiment, not a market-performance metric or proof that all three programs ran live. The recorded Shannon receipts above remain the live execution evidence.
 
 ## Run locally
 
