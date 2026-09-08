@@ -129,7 +129,7 @@ sequenceDiagram
 
     U->>A: Fund and approve initial pool
     U->>E: Atomic create, link, bind and rollover consent
-    Note over U,E: New Engine: one setup transaction; legacy: four
+    Note over U,E: One transaction to set up a new Engine (legacy needed four)
     U->>H: Subscribe to fills, status and creator
     U->>E: Activate
     D-->>H: Fill event and native callback
